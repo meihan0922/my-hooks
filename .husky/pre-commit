@@ -1,0 +1,5 @@
+#!/user/bin/env sh
+
+# 1. 拼寫檢查
+# 2. eslint 檢查
+pnpm spellcheck && npx lint-staged
