@@ -1,0 +1,22 @@
+{
+  "compilerOptions": {
+    "target": "ES2015",
+    "lib": ["DOM", "ESNext"],
+    "allowJs": false,
+    "module": "ESNext",
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "declaration": true,
+    "jsx": "react-jsx",
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "experimentalDecorators": true,
+    "moduleResolution": "bundler",
+    "paths": {
+      "@myHooks/*": ["./packages/@my-hooks/*/src"]
+    }
+  },
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "display": "Base"
+}

@@ -7,6 +7,7 @@ import prettier from 'eslint-plugin-prettier';
 export default tsLint.config({
   extends: [js.configs.recommended, ...tsLint.configs.recommended],
   files: ['**/*.{js,jsx,ts,tsx}'],
+  ignores: ['**/*/coverage/**/*', '**/*/build/**/*', '**/*/es/**/*', '**/*/dist/**/*'],
   rules: {
     'no-console': 'warn',
     'prettier/prettier': 'error',
@@ -18,6 +19,10 @@ export default tsLint.config({
     globals: {
       ...globals.browser,
       ...globals.node,
+    },
+    parserOptions: {
+      project: ['./tsconfig.eslint.json', '**/*/tsconfig.json'],
+      tsconfigRootDir: import.meta.dirname,
     },
   },
   plugins: {

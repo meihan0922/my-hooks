@@ -8,6 +8,8 @@ node_modules/
 **/coverage
 **/logs
 **/es
+
+.turbo
 .cspellcache
 
 pnpm-lock.yaml

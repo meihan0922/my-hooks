@@ -4,6 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
     "lint": "eslint \"{packages,apps}/**/*.{js,jsx,ts,tsx}\"",
     "spellcheck": "cspell lint --dot --gitignore --color --cache --show-suggestions \"(packages|apps)/**/*.@(html|js|cjs|mjs|ts|tsx|css|scss|md)\"",
     "commit": "git-cz",
@@ -48,16 +50,15 @@
     "commitlint": "20.3.1",
     "commitizen": "4.3.1",
     "cz-git": "1.12.0",
-    "husky": "9.1.7"
+    "husky": "9.1.7",
+    "turbo": "2.7.6",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
   },
   "config": {
     "commitizen": {
       "path": "./node_modules/cz-git"
     }
-  },
-  "dependencies": {
-    "react": "19.2.3",
-    "react-dom": "19.2.3"
   },
   "packageManager": "pnpm@10.28.1+sha512.7d7dbbca9e99447b7c3bf7a73286afaaf6be99251eb9498baefa7d406892f67b879adb3a1d7e687fc4ccc1a388c7175fbaae567a26ab44d1067b54fcb0d6a316"
 }
