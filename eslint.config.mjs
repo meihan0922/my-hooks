@@ -7,7 +7,7 @@ import prettier from 'eslint-plugin-prettier';
 export default tsLint.config({
   extends: [js.configs.recommended, ...tsLint.configs.recommended],
   files: ['**/*.{js,jsx,ts,tsx}'],
-  ignores: ['**/*/coverage/**/*', '**/*/build/**/*', '**/*/es/**/*', '**/*/dist/**/*'],
+  ignores: ['**/*/coverage/**/*', '**/*/build/**/*', '**/*/es/**/*', '**/*/dist/**/*', 'vitest.config.ts'],
   rules: {
     'no-console': 'warn',
     'prettier/prettier': 'error',

@@ -4,9 +4,12 @@
   "type": "module",
   "main": "es/index.js",
   "module": "es/index.js",
+  "types": "es/index.d.ts",
   "scripts": {
     "build": "tsup",
-    "dev": "tsup --watch"
+    "dev": "tsup --watch",
+    "test": "vitest run --color",
+    "test:coverage": "vitest run --coverage --color"
   },
   "keywords": [],
   "author": "",

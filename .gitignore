@@ -1,16 +1,18 @@
 node_modules
-node_modules/
-.DS_Store
+.myignore
 
-**/dist
+.DS_Store
 **/build
-**/out
-**/coverage
-**/logs
+**/doc_build
+**/dist
 **/es
+**/coverage
 
 .turbo
+
 .cspellcache
 
 pnpm-lock.yaml
 yarn.lock
+
+node_modules/
