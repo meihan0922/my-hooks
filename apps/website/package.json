@@ -1,0 +1,17 @@
+{
+  "name": "@my-hooks/website",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "dev": "rspress dev",
+    "build": "rspress build",
+    "preview": "rspress preview"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "devDependencies": {
+    "rspress": "1.47.0"
+  }
+}
