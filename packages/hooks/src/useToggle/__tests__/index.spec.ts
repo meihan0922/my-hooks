@@ -14,7 +14,11 @@ describe('useToggle', () => {
 
     act(() => hook.result.current[1].toggle());
 
-    expect(hook.result.current[0]).toBeFalsy();
+    expect(hook.result.current[0]).toBe(false);
+
+    act(() => hook.result.current[1].toggle());
+
+    expect(hook.result.current[0]).toBe('hello');
   });
 
   test('test reverseValue on toggle', async () => {
