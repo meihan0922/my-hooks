@@ -8,6 +8,7 @@
   "include": [
     // whatever paths you intend to lint
     "packages/**/*",
-    "apps/**/*"
+    "apps/**/*",
+    "vitest.config.ts"
   ]
 }

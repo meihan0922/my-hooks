@@ -19,7 +19,7 @@
     "@my-hooks/core": "workspace:*"
   },
   "devDependencies": {
-    "tsup": "8.5.0"
+    "tsup": "8.5.1"
   },
   "peerDependencies": {
     "react": "^19.0.0",

@@ -14,7 +14,7 @@ export default defineConfig({
     include: ['src/**/__tests__/*.spec.ts?(x)'],
     coverage: {
       provider: 'istanbul', // 指定作為覆蓋率數據收集器
-      reporter: ['text', 'lcov'],
+      include: ['src/**/*.ts?(x)'],
     },
   },
 });
