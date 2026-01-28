@@ -1,11 +1,3 @@
----
-title: useToggle
-order: 2
-group:
-  title: 狀態管理
-  order: 2
----
-
 # useToggle
 
 在兩個狀態切換的 hook，不僅限於布爾值，可以接受任意類型的值。
