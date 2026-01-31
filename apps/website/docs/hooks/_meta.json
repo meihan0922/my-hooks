@@ -13,6 +13,13 @@
   },
   {
     "type": "dir",
+    "name": "lifeCycle",
+    "label": "Life Cycle",
+    "collapsible": true,
+    "collapsed": false
+  },
+  {
+    "type": "dir",
     "name": "advanced",
     "label": "Advanced",
     "collapsible": true,
