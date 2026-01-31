@@ -10,5 +10,12 @@
     "label": "State",
     "collapsible": true,
     "collapsed": false
+  },
+  {
+    "type": "dir",
+    "name": "advanced",
+    "label": "Advanced",
+    "collapsible": true,
+    "collapsed": false
   }
 ]

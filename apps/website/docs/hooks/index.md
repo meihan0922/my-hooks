@@ -12,3 +12,4 @@
 | **DOM 与瀏覽器** | `useClickOutside`            | 監聽點擊元素的外部區域的事件        |
 |                  | `useScroll`                  | 獲取頁面或元素滾動的位置            |
 | **生命周期**     | `useUnmount`                 | 僅在組件卸載時行清理函式            |
+| **Advanced**     | `useMemoizedFn`              | 持久化函式的 hook                   |
