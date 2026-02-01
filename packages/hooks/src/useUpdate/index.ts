@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-import { useMemoizedFn } from '../useMemorizedFn';
+import { useMemoizedFn } from '..';
 
 /**
  * Return a function which can be used to force update the component.

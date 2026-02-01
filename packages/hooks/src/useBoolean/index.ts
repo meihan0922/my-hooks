@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 
-import { useToggle } from '../useToggle';
+import { useToggle } from '..';
 
 export interface Actions {
   set: (value: boolean) => void;

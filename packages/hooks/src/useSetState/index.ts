@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-import { useMemoizedFn } from '../useMemorizedFn';
+import { useMemoizedFn } from '..';
 
 export type SetStateAction<S> = Partial<S> | ((prevState: Readonly<S>) => Partial<S>);
 export type SetState<S> = (patch: SetStateAction<S>) => void;

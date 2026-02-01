@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 
-import { useMemoizedFn } from '../useMemorizedFn';
+import { useMemoizedFn } from '..';
 
 /**
  * Executing the function right the component is mounted.
