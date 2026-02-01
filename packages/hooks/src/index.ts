@@ -4,6 +4,7 @@ export { useSetState } from './useSetState';
 export { useToggle } from './useToggle';
 
 // advanced
+export { useControllableValue } from './useControllableValue';
 export { useLatest } from './useLatest';
 export { useMemoizedFn } from './useMemorizedFn';
 
