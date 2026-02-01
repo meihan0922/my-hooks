@@ -31,5 +31,12 @@
     "label": "副作用管理",
     "collapsible": true,
     "collapsed": false
+  },
+  {
+    "type": "dir",
+    "name": "dom",
+    "label": "DOM 與瀏覽器",
+    "collapsible": true,
+    "collapsed": false
   }
 ]

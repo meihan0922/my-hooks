@@ -14,3 +14,6 @@ export { useUnmount } from './useUnmount';
 
 // effect
 export { useUpdate } from './useUpdate';
+
+// dom
+export { useEventListener } from './useEventListener';
