@@ -7,7 +7,7 @@
   {
     "type": "dir",
     "name": "state",
-    "label": "State",
+    "label": "狀態管理",
     "collapsible": true,
     "collapsed": false
   },
@@ -22,6 +22,13 @@
     "type": "dir",
     "name": "advanced",
     "label": "Advanced",
+    "collapsible": true,
+    "collapsed": false
+  },
+  {
+    "type": "dir",
+    "name": "effect",
+    "label": "副作用管理",
     "collapsible": true,
     "collapsed": false
   }

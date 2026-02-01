@@ -1,15 +1,12 @@
 # Hooks 列表
 
-| 分类             | Hook 名称                    | 目的                                |
-| :--------------- | :--------------------------- | :---------------------------------- |
-| **副作用管理**   | `useRequest`                 | 自動化管理數據狀態                  |
-|                  | `useInterval` / `useTimeout` | 聲明式使用計時器並自動清理          |
-| **狀態管理**     | `useLocalStorageState`       | 將 state 与 `localStorage` 自動同步 |
-|                  | `useBoolean` / `useToggle`   | 管理兩個值之間的切換                |
-|                  | `usePrevious`                | 獲取上一次渲染的 props, state       |
-| **UI 交互優化**  | `useDebounceFn`              | 防抖                                |
-|                  | `useThrottleFn`              | 節流                                |
-| **DOM 与瀏覽器** | `useClickOutside`            | 監聽點擊元素的外部區域的事件        |
-|                  | `useScroll`                  | 獲取頁面或元素滾動的位置            |
-| **生命周期**     | `useUnmount`                 | 僅在組件卸載時行清理函式            |
-| **Advanced**     | `useMemoizedFn`              | 持久化函式的 hook                   |
+| 分类           | Hook 名称                  | 目的                                                         |
+| :------------- | :------------------------- | :----------------------------------------------------------- |
+| **副作用管理** | `useUpdate`                | 強制更新 re-render 一次                                      |
+| **狀態管理**   | `useSetState`              | 管理物件型的 state，用法與 class 組件的 `this.setState` 一致 |
+|                | `useBoolean` / `useToggle` | 管理兩個值之間的切換                                         |
+| **生命周期**   | `useUnmount`               | 僅在組件卸載時行清理函式                                     |
+|                | `useMount`                 | 元件 mount 時，執行一次函式                                  |
+| **Advanced**   | `useMemoizedFn`            | 持久化函式的 hook                                            |
+|                | `useControllableValue`     | 讓元件可以同時支援受控與非受控                               |
+|                | `useLatest`                | 不觸發 render 的快照，回傳 ref，ref.current 永遠存最新的值   |
