@@ -8,6 +8,7 @@ export { useLatest } from './useLatest';
 export { useMemoizedFn } from './useMemorizedFn';
 
 // life cycle
+export { useMount } from './useMount';
 export { useUnmount } from './useUnmount';
 
 // effect
