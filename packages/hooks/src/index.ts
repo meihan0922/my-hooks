@@ -13,6 +13,7 @@ export { useMount } from './useMount';
 export { useUnmount } from './useUnmount';
 
 // effect
+export { useInterval } from './useInterval';
 export { useUpdate } from './useUpdate';
 
 // dom
