@@ -14,6 +14,7 @@ export { useUnmount } from './useUnmount';
 
 // effect
 export { useInterval } from './useInterval';
+export { useTimeout } from './useTimeout';
 export { useUpdate } from './useUpdate';
 
 // dom
