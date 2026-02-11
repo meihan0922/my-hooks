@@ -27,7 +27,7 @@ export function useInterval(fn: () => void, delay?: number | null) {
     }, delay);
 
     return clear;
-  }, [delay]);
+  }, [delay, clear]);
 
   return clear;
 }
