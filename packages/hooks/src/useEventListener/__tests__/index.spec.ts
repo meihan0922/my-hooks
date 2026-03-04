@@ -10,8 +10,23 @@ import { useEventListener } from '..';
  * 2. unmount 確實移除
  * 3. handler 更新後，不用重綁也能用最新 handler（避免 stale closure）
  * 4. target 用 ref：ref.current 從 null → element 後可以綁上
+ * 5. target 為 undefined/null 時不綁定
  */
 describe('useEventListener', () => {
+  test('should not add listener when target is undefined or null', () => {
+    const handler = vi.fn();
+    renderHook(() => useEventListener('test', handler));
+    expect(handler).toHaveBeenCalledTimes(0);
+
+    const { rerender } = renderHook(({ target }) => useEventListener('test', handler, target), {
+      initialProps: { target: null as EventTarget | null | undefined },
+    });
+    expect(handler).toHaveBeenCalledTimes(0);
+
+    rerender({ target: undefined });
+    expect(handler).toHaveBeenCalledTimes(0);
+  });
+
   test('should call handler when event is dispatched', async () => {
     const ta = new EventTarget();
     const handler = vi.fn();
