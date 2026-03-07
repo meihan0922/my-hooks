@@ -3,8 +3,12 @@
 | 分类             | Hook 名称                  | 目的                                                         |
 | :--------------- | :------------------------- | :----------------------------------------------------------- |
 | **副作用管理**   | `useUpdate`                | 強制更新 re-render 一次                                      |
+|                  | `useInterval`              | hook 方式建立 setInterval                                    |
+|                  | `useTimeout`               | hook 方式建立 setTimeout                                     |
 | **狀態管理**     | `useSetState`              | 管理物件型的 state，用法與 class 組件的 `this.setState` 一致 |
 |                  | `useBoolean` / `useToggle` | 管理兩個值之間的切換                                         |
+|                  | `useDebounceFn`            | 處理防抖的 hook                                              |
+|                  | `useThrottleFn`            | 處理節流的 hook                                              |
 | **DOM 與瀏覽器** | `useEventListener`         | 監聽元素事件                                                 |
 | **生命周期**     | `useUnmount`               | 僅在組件卸載時行清理函式                                     |
 |                  | `useMount`                 | 元件 mount 時，執行一次函式                                  |
