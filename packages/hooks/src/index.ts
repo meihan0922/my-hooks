@@ -15,6 +15,7 @@ export { useUnmount } from './useUnmount';
 // effect
 export { useDebounceFn } from './useDebounceFn';
 export { useInterval } from './useInterval';
+export { useThrottleFn } from './useThrottleFn';
 export { useTimeout } from './useTimeout';
 export { useUpdate } from './useUpdate';
 
