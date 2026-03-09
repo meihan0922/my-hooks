@@ -1,7 +1,7 @@
 // state
-export { useBoolean } from './useBoolean';
-export { useSetState } from './useSetState';
-export { useToggle } from './useToggle';
+export { useBoolean, type Actions as UseBooleanActions } from './useBoolean';
+export { type SetState as UseSetState, useSetState } from './useSetState';
+export { useToggle, type Actions as UseToggleActions } from './useToggle';
 
 // advanced
 export { useControllableValue } from './useControllableValue';

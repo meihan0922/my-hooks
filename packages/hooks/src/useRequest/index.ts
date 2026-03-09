@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
+import { RefObject, useRef } from 'react';
 
-import { useMemoizedFn, useUnmount } from '..';
+import { useMemoizedFn, useMount, type UseSetState, useSetState, useUnmount } from '..';
 
 type Service<TData, TParams extends any[]> = (...args: TParams) => Promise<TData>;
 
@@ -11,68 +11,114 @@ type Options<TParams extends any[]> = {
 
 const EMPTY_PARAMS: unknown[] = [];
 
-export function useRequest<TData, TParams extends any[]>(
-  service: Service<TData, TParams>,
-  { defaultParams = EMPTY_PARAMS as TParams, manual = false }: Options<TParams> = {},
-) {
-  // 1) state: loading / data / error
-  const [loading, setLoading] = useState(false);
-  const [data, setData] = useState<TData | undefined>(undefined);
-  const [error, setError] = useState<Error | undefined>(undefined);
-  // 2) refs: latest service / requestId / mounted
-  const lastService = useMemoizedFn(service);
-  const requestId = useRef(0);
-  const mounted = useRef(true);
+type FetchState<TData> = {
+  loading: boolean;
+  data?: TData;
+  error?: Error;
+};
 
-  // 3) runAsync
-  const runAsync = useMemoizedFn(async (...args: TParams) => {
-    const currentRequestId = ++requestId.current;
+type SetFetchState<TData> = UseSetState<FetchState<TData>>;
+
+/**
+ * FetchInstance is a class that encapsulates the logic of a fetch request.
+ * 管理請求的狀態和邏輯，管理 requestId 和 mounted 的狀態，管理 setState 的邏輯。
+ * 提供 run 和 runAsync 方法。
+ *
+ * useRequest 會創建一個 FetchInstance 實例，並在 mount 時自動請求，除非 manual 為 true。把結果 export 出去，讓使用者可以呼叫 run 和 runAsync 方法。
+ */
+class FetchInstance<TData, TParams extends any[]> {
+  service: Service<TData, TParams>;
+  setState: SetFetchState<TData>;
+  requestIdRef: React.RefObject<number>;
+  mountedRef: React.RefObject<boolean>;
+
+  constructor(
+    service: Service<TData, TParams>,
+    requestIdRef: RefObject<number>,
+    mountedRef: RefObject<boolean>,
+    setState: SetFetchState<TData>,
+  ) {
+    this.service = service;
+    this.requestIdRef = requestIdRef;
+    this.mountedRef = mountedRef;
+    this.setState = setState;
+  }
+
+  runAsync = async (...args: TParams) => {
+    const currentRequestId = ++this.requestIdRef.current;
+
+    this.setState({ loading: true, error: undefined });
+
     try {
-      setLoading(true);
-      setError(undefined);
-      const result = await lastService(...args);
+      const result = await this.service(...args);
 
-      // 如果後續有新的請求則忽略結果
-      if (currentRequestId !== requestId.current) throw new Error('Request aborted');
-      // 如果組件已經 unmount 則忽略結果
-      if (mounted.current) {
-        setData(result);
-        setLoading(false);
+      if (currentRequestId !== this.requestIdRef.current) {
+        throw new Error('Request aborted');
       }
+
+      if (this.mountedRef.current) {
+        this.setState({ data: result, loading: false, error: undefined });
+      }
+
       return result;
-    } catch (e) {
-      // 如果後續有新的請求則忽略結果
-      // runAsync 將錯誤往外拋，使用者可以明確知道這次請求已過期
-      if (currentRequestId !== requestId.current) throw new Error('Request aborted');
-      const err = e instanceof Error ? e : new Error(String(e));
-      if (mounted.current) {
-        setLoading(false);
-        setError(err);
+    } catch (error) {
+      if (currentRequestId !== this.requestIdRef.current) {
+        throw new Error('Request aborted');
+      }
+
+      const err = error instanceof Error ? error : new Error(String(error));
+
+      if (this.mountedRef.current) {
+        this.setState({ loading: false, error: err });
       }
 
       throw err;
     }
-  });
+  };
 
-  // 4) run
-  const run = useMemoizedFn(async (...args: TParams) => {
-    await runAsync(...args).catch(() => {
+  run = (...args: TParams) => {
+    this.runAsync(...args).catch(() => {
       // ignore error，錯誤已透過 setError 更新
     });
+  };
+}
+
+export function useRequest<TData, TParams extends any[]>(
+  service: Service<TData, TParams>,
+  { defaultParams = EMPTY_PARAMS as TParams, manual = false }: Options<TParams> = {},
+) {
+  const [{ loading, data, error }, setState] = useSetState<FetchState<TData>>({
+    loading: false,
+    data: undefined,
+    error: undefined,
   });
+  const lastService = useMemoizedFn(service);
+  const requestId = useRef(0);
+  const mounted = useRef(false);
 
-  // 5) mount auto run when manual !== true
-  useEffect(() => {
+  const fetchInstanceRef = useRef<FetchInstance<TData, TParams> | null>(null);
+
+  if (!fetchInstanceRef.current) {
+    fetchInstanceRef.current = new FetchInstance(lastService, requestId, mounted, setState);
+  }
+
+  const fetchInstance = fetchInstanceRef.current;
+
+  useMount(() => {
+    mounted.current = true;
     if (!manual) {
-      run(...defaultParams).catch(() => {
-        // 避免 unhandled rejection，錯誤已透過 setError 更新
-      });
+      fetchInstance.run(...defaultParams);
     }
-  }, [manual, defaultParams]);
-
+  });
   useUnmount(() => {
     mounted.current = false;
   });
 
-  return { data, error, loading, run, runAsync };
+  return {
+    loading,
+    data,
+    error,
+    run: fetchInstance.run,
+    runAsync: fetchInstance.runAsync,
+  };
 }
