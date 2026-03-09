@@ -6,13 +6,14 @@
 - `run` / `runAsync` 成功與失敗時自動更新 `data` / `loading` / `error`
 - 處理 race condition，保留最新請求的結果
 - unmount 後不再 setState，避免 memory leak
+- 支援 `plugins` 擴充請求前後邏輯（onBefore、onSuccess、onError、onFinally）
 
 ## API
 
 ```typescript
 const { data, error, loading, run, runAsync } = useRequest<TData, TParams>(
   service,
-  { defaultParams?, manual? }
+  { defaultParams?, manual?, plugins? }
 );
 ```
 
@@ -21,24 +22,42 @@ const { data, error, loading, run, runAsync } = useRequest<TData, TParams>(
 | Parameters | Details        | Type                                   | Default |
 | ---------- | -------------- | -------------------------------------- | ------- |
 | service    | 非同步請求函式 | `(...args: TParams) => Promise<TData>` | -       |
-| options    | 請求的控制選項 | `Options<TParams>`                     | `{}`    |
+| options    | 請求的控制選項 | `Options<TData, TParams>`              | `{}`    |
 
 ### Options
 
-| Parameters    | Details                | Type      | Default |
-| ------------- | ---------------------- | --------- | ------- |
-| defaultParams | mount 時自動請求的參數 | `TParams` | `[]`    |
-| manual        | 為 true 時不自動請求   | `boolean` | `false` |
+| Parameters    | Details                | Type                       | Default |
+| ------------- | ---------------------- | -------------------------- | ------- |
+| defaultParams | mount 時自動請求的參數 | `TParams`                  | `[]`    |
+| manual        | 為 true 時不自動請求   | `boolean`                  | `false` |
+| plugins       | 擴充請求生命週期的插件 | `Plugin<TData, TParams>[]` | `[]`    |
+
+### Plugin
+
+| Parameters | Details                                                      | Type                                   |
+| ---------- | ------------------------------------------------------------ | -------------------------------------- |
+| onBefore   | 請求前執行，可回傳 stopNow 中止請求或 returnNow 直接回傳資料 | `(params) => OnBeforeResult` 或 `void` |
+| onSuccess  | 請求成功時執行                                               | `(data, params) => void`               |
+| onError    | 請求失敗時執行                                               | `(error, params) => void`              |
+| onFinally  | 請求結束時執行（成功或失敗）                                 | `(params, data?, error?) => void`      |
+
+### OnBeforeResult
+
+| Parameters | Details                                                    | Type      |
+| ---------- | ---------------------------------------------------------- | --------- |
+| stopNow    | 為 true 時中止請求，不呼叫 service                         | `boolean` |
+| returnNow  | 為 true 時不呼叫 service，直接以 data 作為結果並更新 state | `boolean` |
+| data       | 搭配 returnNow 使用，作為回傳的資料                        | `TData`   |
 
 ### Result
 
-| Parameters | Details                                  | Type                                   |
-| ---------- | ---------------------------------------- | -------------------------------------- |
-| data       | 請求成功後的資料                         | `TData \| undefined`                   |
-| error      | 請求失敗時的錯誤                         | `Error \| undefined`                   |
-| loading    | 請求進行中                               | `boolean`                              |
-| run        | 觸發請求，錯誤會更新到 error，不會往外拋 | `(...args: TParams) => void`           |
-| runAsync   | 觸發請求，錯誤會往外拋並更新到 error     | `(...args: TParams) => Promise<TData>` |
+| Parameters | Details                                  | Type                                         |
+| ---------- | ---------------------------------------- | -------------------------------------------- |
+| data       | 請求成功後的資料                         | `TData` 或 `undefined`                       |
+| error      | 請求失敗時的錯誤                         | `Error` 或 `undefined`                       |
+| loading    | 請求進行中                               | `boolean`                                    |
+| run        | 觸發請求，錯誤會更新到 error，不會往外拋 | `(...args: TParams) => void`                 |
+| runAsync   | 觸發請求，錯誤會往外拋並更新到 error     | `(...args) => Promise<TData>` 或 `undefined` |
 
 ## Basic
 
@@ -105,3 +124,50 @@ try {
   // 錯誤已更新到 error，這裡可做額外處理
 }
 ```
+
+## Plugins
+
+透過 `plugins` 擴充請求生命週期，可實作快取、輪詢、重試等功能：
+
+```tsx
+import { useRequest } from '@my-hooks/hooks';
+
+const fetchUser = (id: string) => fetch(`https://api.example.com/users/${id}`).then(res => res.json());
+
+// onBefore：請求前可中止或直接回傳資料（如快取）
+const cachePlugin = {
+  onBefore: (params: [string]) => {
+    const cached = localStorage.getItem(`user-${params[0]}`);
+    if (cached) return { returnNow: true, data: JSON.parse(cached) };
+    return undefined;
+  },
+  onSuccess: (data, params) => {
+    localStorage.setItem(`user-${params[0]}`, JSON.stringify(data));
+  },
+};
+
+// onSuccess / onError / onFinally：請求後處理
+const logPlugin = {
+  onSuccess: (data, params) => console.log('success', data, params),
+  onError: (err, params) => console.error('error', err, params),
+  onFinally: (params, data, error) => console.log('finally', params, data, error),
+};
+
+export default () => {
+  const { data, loading, run } = useRequest(fetchUser, {
+    manual: true,
+    plugins: [cachePlugin, logPlugin],
+  });
+
+  return (
+    <button onClick={() => run('1')} disabled={loading}>
+      取得使用者
+    </button>
+  );
+};
+```
+
+### onBefore 進階用法
+
+- `stopNow: true`：中止請求，不呼叫 service
+- `returnNow: true, data`：不呼叫 service，直接以 data 更新 state 並觸發 onSuccess / onFinally

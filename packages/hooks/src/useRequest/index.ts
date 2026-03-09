@@ -4,9 +4,10 @@ import { useMemoizedFn, useMount, type UseSetState, useSetState, useUnmount } fr
 
 type Service<TData, TParams extends any[]> = (...args: TParams) => Promise<TData>;
 
-type Options<TParams extends any[]> = {
+type Options<TData, TParams extends any[]> = {
   defaultParams?: TParams;
   manual?: boolean;
+  plugins?: Plugin<TData, TParams>[];
 };
 
 const EMPTY_PARAMS: unknown[] = [];
@@ -15,6 +16,19 @@ type FetchState<TData> = {
   loading: boolean;
   data?: TData;
   error?: Error;
+};
+
+type OnBeforeResult<TData> = {
+  stopNow?: boolean;
+  returnNow?: boolean;
+  data?: TData;
+};
+
+type Plugin<TData, TParams extends any[]> = {
+  onBefore?: (params: TParams) => OnBeforeResult<TData> | void;
+  onSuccess?: (data: TData, params: TParams) => void;
+  onError?: (error: Error, params: TParams) => void;
+  onFinally?: (params: TParams, data?: TData, error?: Error) => void;
 };
 
 type SetFetchState<TData> = UseSetState<FetchState<TData>>;
@@ -31,22 +45,56 @@ class FetchInstance<TData, TParams extends any[]> {
   setState: SetFetchState<TData>;
   requestIdRef: React.RefObject<number>;
   mountedRef: React.RefObject<boolean>;
+  plugins?: Plugin<TData, TParams>[];
 
   constructor(
     service: Service<TData, TParams>,
     requestIdRef: RefObject<number>,
     mountedRef: RefObject<boolean>,
     setState: SetFetchState<TData>,
+    plugins?: Plugin<TData, TParams>[],
   ) {
     this.service = service;
     this.requestIdRef = requestIdRef;
     this.mountedRef = mountedRef;
     this.setState = setState;
+    this.plugins = plugins;
   }
 
-  runAsync = async (...args: TParams) => {
+  runAsync = async (...args: TParams): Promise<TData | undefined> => {
     const currentRequestId = ++this.requestIdRef.current;
 
+    if (this.plugins?.length) {
+      for (const plugin of this.plugins) {
+        const onBeforeResult = plugin.onBefore?.(args);
+
+        if (onBeforeResult?.stopNow) {
+          return undefined;
+        }
+
+        if (onBeforeResult?.returnNow) {
+          const data = onBeforeResult.data;
+
+          if (this.mountedRef.current) {
+            this.setState({
+              data,
+              loading: false,
+              error: undefined,
+            });
+
+            for (const p of this.plugins) {
+              p.onSuccess?.(data as TData, args);
+            }
+
+            for (const p of this.plugins) {
+              p.onFinally?.(args, data, undefined);
+            }
+          }
+
+          return data;
+        }
+      }
+    }
     this.setState({ loading: true, error: undefined });
 
     try {
@@ -55,9 +103,20 @@ class FetchInstance<TData, TParams extends any[]> {
       if (currentRequestId !== this.requestIdRef.current) {
         throw new Error('Request aborted');
       }
+      if (!this.mountedRef.current) {
+        return result;
+      }
 
-      if (this.mountedRef.current) {
-        this.setState({ data: result, loading: false, error: undefined });
+      this.setState({ data: result, loading: false, error: undefined });
+      if (this.plugins?.length) {
+        for (const plugin of this.plugins) {
+          plugin.onSuccess?.(result, args);
+        }
+      }
+      if (this.plugins?.length) {
+        for (const plugin of this.plugins) {
+          plugin.onFinally?.(args, result, undefined);
+        }
       }
 
       return result;
@@ -67,10 +126,21 @@ class FetchInstance<TData, TParams extends any[]> {
       }
 
       const err = error instanceof Error ? error : new Error(String(error));
-
-      if (this.mountedRef.current) {
-        this.setState({ loading: false, error: err });
+      if (!this.mountedRef.current) {
+        throw err;
       }
+
+      if (this.plugins?.length) {
+        for (const plugin of this.plugins) {
+          plugin.onError?.(err, args);
+        }
+      }
+      if (this.plugins?.length) {
+        for (const plugin of this.plugins) {
+          plugin.onFinally?.(args, undefined, err);
+        }
+      }
+      this.setState({ loading: false, error: err });
 
       throw err;
     }
@@ -85,7 +155,7 @@ class FetchInstance<TData, TParams extends any[]> {
 
 export function useRequest<TData, TParams extends any[]>(
   service: Service<TData, TParams>,
-  { defaultParams = EMPTY_PARAMS as TParams, manual = false }: Options<TParams> = {},
+  { defaultParams = EMPTY_PARAMS as TParams, manual = false, plugins = [] }: Options<TData, TParams> = {},
 ) {
   const [{ loading, data, error }, setState] = useSetState<FetchState<TData>>({
     loading: false,
@@ -99,7 +169,7 @@ export function useRequest<TData, TParams extends any[]>(
   const fetchInstanceRef = useRef<FetchInstance<TData, TParams> | null>(null);
 
   if (!fetchInstanceRef.current) {
-    fetchInstanceRef.current = new FetchInstance(lastService, requestId, mounted, setState);
+    fetchInstanceRef.current = new FetchInstance(lastService, requestId, mounted, setState, plugins);
   }
 
   const fetchInstance = fetchInstanceRef.current;

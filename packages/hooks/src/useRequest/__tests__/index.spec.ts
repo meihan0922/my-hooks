@@ -193,4 +193,202 @@ describe('useRequest', () => {
     expect(result.current.data).toEqual(mockData);
     expect(service).toHaveBeenCalledWith('id-1', 'id-2');
   });
+
+  describe('plugins', () => {
+    test('onBefore with stopNow: true should not call service', async () => {
+      const service = vi.fn().mockResolvedValue({ data: 'testing' });
+      const onBefore = vi.fn().mockReturnValue({ stopNow: true });
+      const { result } = renderHook(() => useRequest(service, { manual: true, plugins: [{ onBefore }] }));
+
+      act(() => {
+        result.current.run('param');
+      });
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
+
+      expect(service).not.toHaveBeenCalled();
+      expect(onBefore).toHaveBeenCalledWith(['param']);
+      expect(result.current.data).toBeUndefined();
+    });
+    test('onBefore with returnNow: true should return data without calling service', async () => {
+      const returnData = { id: 1, value: 'from plugin' };
+      const service = vi.fn().mockResolvedValue({ data: 'from service' });
+      const onBefore = vi.fn().mockReturnValue({ returnNow: true, data: returnData });
+      const onSuccess = vi.fn();
+      const onFinally = vi.fn();
+      const { result } = renderHook(() =>
+        useRequest(service, {
+          manual: true,
+          plugins: [{ onBefore, onSuccess, onFinally }],
+        }),
+      );
+
+      act(() => {
+        result.current.run('param');
+      });
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
+
+      expect(service).not.toHaveBeenCalled();
+      expect(result.current.data).toEqual(returnData);
+      expect(onSuccess).toHaveBeenCalledWith(returnData, ['param']);
+      expect(onFinally).toHaveBeenCalledWith(['param'], returnData, undefined);
+    });
+    test('onSuccess should be called when request succeeds', async () => {
+      const mockData = { data: 'testing' };
+      const service = vi.fn().mockResolvedValue(mockData);
+      const onSuccess = vi.fn();
+      const { result } = renderHook(() => useRequest(service, { manual: true, plugins: [{ onSuccess }] }));
+
+      await act(async () => {
+        await result.current.runAsync('param1', 'param2');
+      });
+
+      expect(onSuccess).toHaveBeenCalledWith(mockData, ['param1', 'param2']);
+    });
+    test('onError should be called when request fails', async () => {
+      const error = new Error('test error');
+      const service = vi.fn().mockRejectedValue(error);
+      const onError = vi.fn();
+      const { result } = renderHook(() => useRequest(service, { manual: true, plugins: [{ onError }] }));
+
+      await act(async () => {
+        try {
+          await result.current.runAsync('param');
+        } catch {
+          // ignore
+        }
+      });
+
+      expect(onError).toHaveBeenCalledWith(error, ['param']);
+    });
+    test('onFinally should be called on success with data', async () => {
+      const mockData = { data: 'testing' };
+      const service = vi.fn().mockResolvedValue(mockData);
+      const onFinally = vi.fn();
+      const { result } = renderHook(() => useRequest(service, { manual: true, plugins: [{ onFinally }] }));
+
+      await act(async () => {
+        await result.current.runAsync('param');
+      });
+
+      expect(onFinally).toHaveBeenCalledWith(['param'], mockData, undefined);
+    });
+    test('onFinally should be called on error with error', async () => {
+      const error = new Error('test error');
+      const service = vi.fn().mockRejectedValue(error);
+      const onFinally = vi.fn();
+      const { result } = renderHook(() => useRequest(service, { manual: true, plugins: [{ onFinally }] }));
+
+      await act(async () => {
+        try {
+          await result.current.runAsync('param');
+        } catch {
+          // ignore
+        }
+      });
+
+      expect(onFinally).toHaveBeenCalledWith(['param'], undefined, error);
+    });
+    test('multiple plugins should all be invoked', async () => {
+      const mockData = { data: 'testing' };
+      const service = vi.fn().mockResolvedValue(mockData);
+      const onSuccess1 = vi.fn();
+      const onSuccess2 = vi.fn();
+      const { result } = renderHook(() =>
+        useRequest(service, {
+          manual: true,
+          plugins: [{ onSuccess: onSuccess1 }, { onSuccess: onSuccess2 }],
+        }),
+      );
+
+      await act(async () => {
+        await result.current.runAsync('param');
+      });
+
+      expect(onSuccess1).toHaveBeenCalledWith(mockData, ['param']);
+      expect(onSuccess2).toHaveBeenCalledWith(mockData, ['param']);
+    });
+    test('later plugin onBefore with stopNow should stop request', async () => {
+      const service = vi.fn().mockResolvedValue({ data: 'testing' });
+
+      const onBefore1 = vi.fn();
+      const onBefore2 = vi.fn().mockReturnValue({ stopNow: true });
+
+      const { result } = renderHook(() =>
+        useRequest(service, {
+          manual: true,
+          plugins: [{ onBefore: onBefore1 }, { onBefore: onBefore2 }],
+        }),
+      );
+
+      act(() => {
+        result.current.run('param');
+      });
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
+
+      expect(onBefore1).toHaveBeenCalledWith(['param']);
+      expect(onBefore2).toHaveBeenCalledWith(['param']);
+      expect(service).not.toHaveBeenCalled();
+    });
+    test('later plugin onBefore with returnNow should return data without calling service', async () => {
+      const returnData = { id: 2, value: 'from second plugin' };
+      const service = vi.fn().mockResolvedValue({ data: 'from service' });
+
+      const onBefore1 = vi.fn();
+      const onBefore2 = vi.fn().mockReturnValue({ returnNow: true, data: returnData });
+
+      const onSuccess1 = vi.fn();
+      const onSuccess2 = vi.fn();
+
+      const { result } = renderHook(() =>
+        useRequest(service, {
+          manual: true,
+          plugins: [
+            { onBefore: onBefore1, onSuccess: onSuccess1 },
+            { onBefore: onBefore2, onSuccess: onSuccess2 },
+          ],
+        }),
+      );
+
+      act(() => {
+        result.current.run('param');
+      });
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
+
+      expect(service).not.toHaveBeenCalled();
+      expect(result.current.data).toEqual(returnData);
+      expect(onSuccess1).toHaveBeenCalledWith(returnData, ['param']);
+      expect(onSuccess2).toHaveBeenCalledWith(returnData, ['param']);
+    });
+    test('runAsync should resolve plugin data when onBefore returns returnNow', async () => {
+      const returnData = { id: 1, value: 'from plugin' };
+      const service = vi.fn().mockResolvedValue({ data: 'from service' });
+
+      const { result } = renderHook(() =>
+        useRequest(service, {
+          manual: true,
+          plugins: [{ onBefore: () => ({ returnNow: true, data: returnData }) }],
+        }),
+      );
+
+      let out;
+      await act(async () => {
+        out = await result.current.runAsync('param');
+      });
+
+      expect(out).toEqual(returnData);
+      expect(service).not.toHaveBeenCalled();
+    });
+  });
 });
