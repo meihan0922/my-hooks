@@ -427,6 +427,56 @@ describe('useRequest', () => {
   });
 
   describe('debouncePlugin', () => {
+    test('debouncePlugin should clear pending request after unmount', async () => {
+      vi.useFakeTimers();
+
+      const service = vi.fn().mockResolvedValue({ data: 'testing' });
+
+      const { result, unmount } = renderHook(() =>
+        useRequest(service, {
+          manual: true,
+          pluginFactories: [debouncePlugin(1000)],
+        }),
+      );
+
+      act(() => {
+        result.current.run('A');
+      });
+
+      unmount();
+
+      act(() => {
+        vi.advanceTimersByTime(1000);
+      });
+
+      expect(service).toHaveBeenCalledTimes(0);
+
+      vi.useRealTimers();
+    });
+    test('debouncePlugin should cancel request when cancel is called', async () => {
+      vi.useFakeTimers();
+      const service = vi.fn().mockResolvedValue({ data: 'testing' });
+      const { result } = renderHook(() =>
+        useRequest(service, { manual: true, pluginFactories: [debouncePlugin(1000)] }),
+      );
+      await act(async () => {
+        result.current.run('A');
+      });
+
+      expect(service).toHaveBeenCalledTimes(0);
+
+      await act(async () => {
+        result.current.cancel();
+      });
+
+      await act(async () => {
+        vi.advanceTimersByTime(1000);
+      });
+
+      expect(service).toHaveBeenCalledTimes(0);
+
+      vi.useRealTimers();
+    });
     test('should debounce request', async () => {
       vi.useFakeTimers();
       const service = vi.fn().mockResolvedValue({ data: 'testing' });
@@ -434,7 +484,7 @@ describe('useRequest', () => {
         useRequest(service, { manual: true, pluginFactories: [debouncePlugin(1000)] }),
       );
 
-      act(async () => {
+      act(() => {
         result.current.run('A');
         result.current.run('B');
         result.current.run('C');

@@ -29,6 +29,7 @@ type Plugin<TData, TParams extends any[]> = {
   onSuccess?: (data: TData, params: TParams) => void;
   onError?: (error: Error, params: TParams) => void;
   onFinally?: (params: TParams, data?: TData, error?: Error) => void;
+  onCancel?: () => void;
 };
 
 type PluginFactory<TData, TParams extends any[]> = (
@@ -156,6 +157,16 @@ class FetchInstance<TData, TParams extends any[]> {
       // ignore error，錯誤已透過 setError 更新
     });
   };
+
+  cancel = () => {
+    this.requestIdRef.current += 1;
+    this.setState({ loading: false });
+    if (this.plugins?.length) {
+      for (const plugin of this.plugins) {
+        plugin.onCancel?.();
+      }
+    }
+  };
 }
 
 export const cachePlugin = <TData, TParams extends any[]>(
@@ -216,6 +227,14 @@ export const debouncePlugin = <TData, TParams extends any[]>(debounceTime: numbe
 
         return { stopNow: true };
       },
+      onCancel() {
+        if (timer) {
+          clearTimeout(timer);
+          timer = null;
+        }
+        lastParams = null;
+        shouldBypassOnce = false;
+      },
     };
   };
 };
@@ -253,6 +272,7 @@ export function useRequest<TData, TParams extends any[]>(
   });
   useUnmount(() => {
     mounted.current = false;
+    fetchInstance.cancel();
   });
 
   return {
@@ -261,5 +281,6 @@ export function useRequest<TData, TParams extends any[]>(
     error,
     run: fetchInstance.run,
     runAsync: fetchInstance.runAsync,
+    cancel: fetchInstance.cancel,
   };
 }
