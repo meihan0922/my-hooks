@@ -21,3 +21,6 @@ export { useUpdate } from './useUpdate';
 
 // dom
 export { useEventListener } from './useEventListener';
+
+// request
+export * from './useRequest';

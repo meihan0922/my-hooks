@@ -2,7 +2,7 @@ import { renderHook, waitFor } from '@testing-library/react';
 import { act } from 'react';
 import { describe, expect, test, vi } from 'vitest';
 
-import { cachePlugin, useRequest } from '..';
+import { cachePlugin, debouncePlugin, useRequest } from '..';
 
 /**
     1.	mount 時自動請求
@@ -198,7 +198,9 @@ describe('useRequest', () => {
     test('onBefore with stopNow: true should not call service', async () => {
       const service = vi.fn().mockResolvedValue({ data: 'testing' });
       const onBefore = vi.fn().mockReturnValue({ stopNow: true });
-      const { result } = renderHook(() => useRequest(service, { manual: true, plugins: [{ onBefore }] }));
+      const { result } = renderHook(() =>
+        useRequest(service, { manual: true, pluginFactories: [() => ({ onBefore })] }),
+      );
 
       act(() => {
         result.current.run('param');
@@ -221,7 +223,7 @@ describe('useRequest', () => {
       const { result } = renderHook(() =>
         useRequest(service, {
           manual: true,
-          plugins: [{ onBefore, onSuccess, onFinally }],
+          pluginFactories: [() => ({ onBefore, onSuccess, onFinally })],
         }),
       );
 
@@ -242,7 +244,9 @@ describe('useRequest', () => {
       const mockData = { data: 'testing' };
       const service = vi.fn().mockResolvedValue(mockData);
       const onSuccess = vi.fn();
-      const { result } = renderHook(() => useRequest(service, { manual: true, plugins: [{ onSuccess }] }));
+      const { result } = renderHook(() =>
+        useRequest(service, { manual: true, pluginFactories: [() => ({ onSuccess })] }),
+      );
 
       await act(async () => {
         await result.current.runAsync('param1', 'param2');
@@ -254,7 +258,9 @@ describe('useRequest', () => {
       const error = new Error('test error');
       const service = vi.fn().mockRejectedValue(error);
       const onError = vi.fn();
-      const { result } = renderHook(() => useRequest(service, { manual: true, plugins: [{ onError }] }));
+      const { result } = renderHook(() =>
+        useRequest(service, { manual: true, pluginFactories: [() => ({ onError })] }),
+      );
 
       await act(async () => {
         try {
@@ -270,7 +276,9 @@ describe('useRequest', () => {
       const mockData = { data: 'testing' };
       const service = vi.fn().mockResolvedValue(mockData);
       const onFinally = vi.fn();
-      const { result } = renderHook(() => useRequest(service, { manual: true, plugins: [{ onFinally }] }));
+      const { result } = renderHook(() =>
+        useRequest(service, { manual: true, pluginFactories: [() => ({ onFinally })] }),
+      );
 
       await act(async () => {
         await result.current.runAsync('param');
@@ -282,7 +290,9 @@ describe('useRequest', () => {
       const error = new Error('test error');
       const service = vi.fn().mockRejectedValue(error);
       const onFinally = vi.fn();
-      const { result } = renderHook(() => useRequest(service, { manual: true, plugins: [{ onFinally }] }));
+      const { result } = renderHook(() =>
+        useRequest(service, { manual: true, pluginFactories: [() => ({ onFinally })] }),
+      );
 
       await act(async () => {
         try {
@@ -302,7 +312,7 @@ describe('useRequest', () => {
       const { result } = renderHook(() =>
         useRequest(service, {
           manual: true,
-          plugins: [{ onSuccess: onSuccess1 }, { onSuccess: onSuccess2 }],
+          pluginFactories: [() => ({ onSuccess: onSuccess1 }), () => ({ onSuccess: onSuccess2 })],
         }),
       );
 
@@ -322,7 +332,7 @@ describe('useRequest', () => {
       const { result } = renderHook(() =>
         useRequest(service, {
           manual: true,
-          plugins: [{ onBefore: onBefore1 }, { onBefore: onBefore2 }],
+          pluginFactories: [() => ({ onBefore: onBefore1 }), () => ({ onBefore: onBefore2 })],
         }),
       );
 
@@ -351,9 +361,9 @@ describe('useRequest', () => {
       const { result } = renderHook(() =>
         useRequest(service, {
           manual: true,
-          plugins: [
-            { onBefore: onBefore1, onSuccess: onSuccess1 },
-            { onBefore: onBefore2, onSuccess: onSuccess2 },
+          pluginFactories: [
+            () => ({ onBefore: onBefore1, onSuccess: onSuccess1 }),
+            () => ({ onBefore: onBefore2, onSuccess: onSuccess2 }),
           ],
         }),
       );
@@ -378,7 +388,7 @@ describe('useRequest', () => {
       const { result } = renderHook(() =>
         useRequest(service, {
           manual: true,
-          plugins: [{ onBefore: () => ({ returnNow: true, data: returnData }) }],
+          pluginFactories: [() => ({ onBefore: () => ({ returnNow: true, data: returnData }) })],
         }),
       );
 
@@ -399,7 +409,7 @@ describe('useRequest', () => {
       const { result } = renderHook(() =>
         useRequest(service, {
           manual: true,
-          plugins: [cachePlugin()],
+          pluginFactories: [cachePlugin()],
         }),
       );
 
@@ -413,6 +423,39 @@ describe('useRequest', () => {
 
       expect(service).toHaveBeenCalledTimes(1);
       expect(result.current.data).toEqual({ name: 'A' });
+    });
+  });
+
+  describe('debouncePlugin', () => {
+    test('should debounce request', async () => {
+      vi.useFakeTimers();
+      const service = vi.fn().mockResolvedValue({ data: 'testing' });
+      const { result } = renderHook(() =>
+        useRequest(service, { manual: true, pluginFactories: [debouncePlugin(1000)] }),
+      );
+
+      act(async () => {
+        result.current.run('A');
+        result.current.run('B');
+        result.current.run('C');
+      });
+
+      // 時間還沒到，不應該發 request
+      expect(service).toHaveBeenCalledTimes(0);
+
+      act(() => {
+        vi.advanceTimersByTime(999);
+      });
+
+      expect(service).toHaveBeenCalledTimes(0);
+
+      act(async () => {
+        vi.advanceTimersByTime(1);
+      });
+
+      expect(service).toHaveBeenCalledTimes(1);
+      expect(service).toHaveBeenCalledWith('C');
+      vi.useRealTimers();
     });
   });
 });

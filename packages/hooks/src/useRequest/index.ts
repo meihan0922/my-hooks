@@ -7,7 +7,7 @@ type Service<TData, TParams extends any[]> = (...args: TParams) => Promise<TData
 type Options<TData, TParams extends any[]> = {
   defaultParams?: TParams;
   manual?: boolean;
-  plugins?: Plugin<TData, TParams>[];
+  pluginFactories?: PluginFactory<TData, TParams>[];
 };
 
 const EMPTY_PARAMS: unknown[] = [];
@@ -31,6 +31,10 @@ type Plugin<TData, TParams extends any[]> = {
   onFinally?: (params: TParams, data?: TData, error?: Error) => void;
 };
 
+type PluginFactory<TData, TParams extends any[]> = (
+  fetchInstance: FetchInstance<TData, TParams>,
+) => Plugin<TData, TParams>;
+
 type SetFetchState<TData> = UseSetState<FetchState<TData>>;
 
 /**
@@ -46,19 +50,20 @@ class FetchInstance<TData, TParams extends any[]> {
   requestIdRef: React.RefObject<number>;
   mountedRef: React.RefObject<boolean>;
   plugins?: Plugin<TData, TParams>[];
+  setPlugins: (plugins: Plugin<TData, TParams>[]) => void = plugins => {
+    this.plugins = plugins;
+  };
 
   constructor(
     service: Service<TData, TParams>,
     requestIdRef: RefObject<number>,
     mountedRef: RefObject<boolean>,
     setState: SetFetchState<TData>,
-    plugins?: Plugin<TData, TParams>[],
   ) {
     this.service = service;
     this.requestIdRef = requestIdRef;
     this.mountedRef = mountedRef;
     this.setState = setState;
-    this.plugins = plugins;
   }
 
   runAsync = async (...args: TParams): Promise<TData | undefined> => {
@@ -155,7 +160,7 @@ class FetchInstance<TData, TParams extends any[]> {
 
 export const cachePlugin = <TData, TParams extends any[]>(
   getKey?: (...params: TParams) => string,
-): Plugin<TData, TParams> => {
+): PluginFactory<TData, TParams> => {
   const cache = new Map<string, TData>();
 
   const resolveKey = (...params: TParams) => {
@@ -165,7 +170,8 @@ export const cachePlugin = <TData, TParams extends any[]>(
     return JSON.stringify(params);
   };
 
-  return {
+  // return (fetchInstance: FetchInstance<TData, TParams>) => ({
+  return () => ({
     onBefore(params) {
       const key = resolveKey(...params);
       if (cache.has(key)) {
@@ -177,12 +183,46 @@ export const cachePlugin = <TData, TParams extends any[]>(
       const key = resolveKey(...params);
       cache.set(key, data);
     },
+  });
+};
+
+export const debouncePlugin = <TData, TParams extends any[]>(debounceTime: number): PluginFactory<TData, TParams> => {
+  return (fetchInstance: FetchInstance<TData, TParams>) => {
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    let lastParams: TParams | null = null;
+    let shouldBypassOnce = false;
+    return {
+      onBefore(params) {
+        // plugin 自己補發的那一次，要直接放行
+        if (shouldBypassOnce) {
+          shouldBypassOnce = false;
+          return;
+        }
+
+        lastParams = params;
+
+        if (timer) {
+          clearTimeout(timer);
+        }
+
+        timer = setTimeout(() => {
+          timer = null;
+
+          if (lastParams) {
+            shouldBypassOnce = true;
+            fetchInstance.run(...lastParams);
+          }
+        }, debounceTime);
+
+        return { stopNow: true };
+      },
+    };
   };
 };
 
 export function useRequest<TData, TParams extends any[]>(
   service: Service<TData, TParams>,
-  { defaultParams = EMPTY_PARAMS as TParams, manual = false, plugins = [] }: Options<TData, TParams> = {},
+  { defaultParams = EMPTY_PARAMS as TParams, manual = false, pluginFactories }: Options<TData, TParams> = {},
 ) {
   const [{ loading, data, error }, setState] = useSetState<FetchState<TData>>({
     loading: false,
@@ -194,9 +234,13 @@ export function useRequest<TData, TParams extends any[]>(
   const mounted = useRef(false);
 
   const fetchInstanceRef = useRef<FetchInstance<TData, TParams> | null>(null);
-
   if (!fetchInstanceRef.current) {
-    fetchInstanceRef.current = new FetchInstance(lastService, requestId, mounted, setState, plugins);
+    fetchInstanceRef.current = new FetchInstance(lastService, requestId, mounted, setState);
+    if (pluginFactories?.length) {
+      const fetchInstance = fetchInstanceRef.current;
+      const plugins = pluginFactories.map(factory => factory(fetchInstance));
+      fetchInstanceRef.current.setPlugins(plugins);
+    }
   }
 
   const fetchInstance = fetchInstanceRef.current;
