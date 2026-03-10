@@ -153,6 +153,33 @@ class FetchInstance<TData, TParams extends any[]> {
   };
 }
 
+export const cachePlugin = <TData, TParams extends any[]>(
+  getKey?: (...params: TParams) => string,
+): Plugin<TData, TParams> => {
+  const cache = new Map<string, TData>();
+
+  const resolveKey = (...params: TParams) => {
+    if (getKey) {
+      return getKey(...params);
+    }
+    return JSON.stringify(params);
+  };
+
+  return {
+    onBefore(params) {
+      const key = resolveKey(...params);
+      if (cache.has(key)) {
+        return { returnNow: true, data: cache.get(key) };
+      }
+      return undefined;
+    },
+    onSuccess(data, params) {
+      const key = resolveKey(...params);
+      cache.set(key, data);
+    },
+  };
+};
+
 export function useRequest<TData, TParams extends any[]>(
   service: Service<TData, TParams>,
   { defaultParams = EMPTY_PARAMS as TParams, manual = false, plugins = [] }: Options<TData, TParams> = {},

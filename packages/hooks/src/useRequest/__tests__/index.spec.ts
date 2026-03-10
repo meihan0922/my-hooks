@@ -2,7 +2,7 @@ import { renderHook, waitFor } from '@testing-library/react';
 import { act } from 'react';
 import { describe, expect, test, vi } from 'vitest';
 
-import { useRequest } from '..';
+import { cachePlugin, useRequest } from '..';
 
 /**
     1.	mount 時自動請求
@@ -389,6 +389,30 @@ describe('useRequest', () => {
 
       expect(out).toEqual(returnData);
       expect(service).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('cachePlugin', () => {
+    test('should cache data when request succeeds', async () => {
+      const service = vi.fn().mockResolvedValueOnce({ name: 'A' }).mockResolvedValueOnce({ name: 'B' });
+
+      const { result } = renderHook(() =>
+        useRequest(service, {
+          manual: true,
+          plugins: [cachePlugin()],
+        }),
+      );
+
+      await act(async () => {
+        await result.current.run(1);
+      });
+
+      await act(async () => {
+        await result.current.run(1);
+      });
+
+      expect(service).toHaveBeenCalledTimes(1);
+      expect(result.current.data).toEqual({ name: 'A' });
     });
   });
 });
