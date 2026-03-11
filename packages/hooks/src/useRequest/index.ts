@@ -239,6 +239,36 @@ export const debouncePlugin = <TData, TParams extends any[]>(debounceTime: numbe
   };
 };
 
+export const pollingPlugin = <TData, TParams extends any[]>(interval: number): PluginFactory<TData, TParams> => {
+  return (fetchInstance: FetchInstance<TData, TParams>) => {
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    let lastParams: TParams | null = null;
+
+    return {
+      onBefore(params) {
+        lastParams = params;
+      },
+      onFinally() {
+        if (timer) {
+          clearTimeout(timer);
+        }
+
+        timer = setTimeout(() => {
+          if (lastParams) {
+            fetchInstance.run(...lastParams);
+          }
+        }, interval);
+      },
+      onCancel() {
+        if (timer) {
+          clearTimeout(timer);
+          timer = null;
+        }
+      },
+    };
+  };
+};
+
 export function useRequest<TData, TParams extends any[]>(
   service: Service<TData, TParams>,
   { defaultParams = EMPTY_PARAMS as TParams, manual = false, pluginFactories }: Options<TData, TParams> = {},

@@ -2,7 +2,7 @@ import { renderHook, waitFor } from '@testing-library/react';
 import { act } from 'react';
 import { describe, expect, test, vi } from 'vitest';
 
-import { cachePlugin, debouncePlugin, useRequest } from '..';
+import { cachePlugin, debouncePlugin, pollingPlugin, useRequest } from '..';
 
 /**
     1.	mount 時自動請求
@@ -426,8 +426,91 @@ describe('useRequest', () => {
     });
   });
 
+  describe('pollingPlugin', () => {
+    test('should poll request repeatedly', async () => {
+      vi.useFakeTimers();
+
+      const service = vi.fn().mockResolvedValue({ data: 'testing' });
+      const { result } = renderHook(() =>
+        useRequest(service, { manual: true, pluginFactories: [pollingPlugin(1000)] }),
+      );
+
+      await act(() => {
+        result.current.run('A');
+      });
+
+      expect(service).toHaveBeenCalledTimes(1);
+
+      await act(() => {
+        vi.advanceTimersByTime(1000);
+      });
+
+      expect(service).toHaveBeenCalledTimes(2);
+
+      await act(() => {
+        vi.advanceTimersByTime(1000);
+      });
+
+      expect(service).toHaveBeenCalledTimes(3);
+
+      vi.useRealTimers();
+    });
+    test('should cancel request when unmount', async () => {
+      vi.useFakeTimers();
+      const service = vi.fn().mockResolvedValue({ data: 'testing' });
+      const { result, unmount } = renderHook(() =>
+        useRequest(service, { manual: true, pluginFactories: [pollingPlugin(1000)] }),
+      );
+      act(() => {
+        result.current.run('A');
+      });
+
+      expect(service).toHaveBeenCalledTimes(1);
+
+      unmount();
+
+      act(() => {
+        vi.advanceTimersByTime(5000);
+      });
+
+      expect(service).toHaveBeenCalledTimes(1);
+
+      vi.useRealTimers();
+    });
+    test('pollingPlugin should stop polling when cancel is called', () => {
+      vi.useFakeTimers();
+
+      const service = vi.fn().mockResolvedValue({ data: 'testing' });
+
+      const { result } = renderHook(() =>
+        useRequest(service, {
+          manual: true,
+          pluginFactories: [pollingPlugin(1000)],
+        }),
+      );
+
+      act(() => {
+        result.current.run('A');
+      });
+
+      expect(service).toHaveBeenCalledTimes(1);
+
+      act(() => {
+        result.current.cancel();
+      });
+
+      act(() => {
+        vi.advanceTimersByTime(5000);
+      });
+
+      expect(service).toHaveBeenCalledTimes(1);
+
+      vi.useRealTimers();
+    });
+  });
+
   describe('debouncePlugin', () => {
-    test('debouncePlugin should clear pending request after unmount', async () => {
+    test('debouncePlugin should clear pending request after unmount', () => {
       vi.useFakeTimers();
 
       const service = vi.fn().mockResolvedValue({ data: 'testing' });
