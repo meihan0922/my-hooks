@@ -15,3 +15,5 @@
 | **Advanced**     | `useMemoizedFn`            | 持久化函式的 hook                                            |
 |                  | `useControllableValue`     | 讓元件可以同時支援受控與非受控                               |
 |                  | `useLatest`                | 不觸發 render 的快照，回傳 ref，ref.current 永遠存最新的值   |
+
+| **Request** | `useRequest` | 管理異步數據的 hooks，已包含自動與手動請求、防抖、重新請求、polling、錯誤重試、緩存 |
