@@ -1,6 +1,6 @@
 # useRequest
 
-把非同步請求的生命週期包進去的 hook，並且：
+管理異步數據的 hooks，已包含自動與手動請求、防抖、重新請求、polling、錯誤重試、緩存。
 
 - mount 時自動請求，除非 `manual` 為 `true`
 - `run` / `runAsync` 成功與失敗時自動更新 `data` / `loading` / `error`

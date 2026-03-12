@@ -69,40 +69,57 @@ class FetchInstance<TData, TParams extends any[]> {
     this.lastParams = null;
   }
 
+  private runPluginHandler<K extends 'onSuccess' | 'onError' | 'onFinally' | 'onCancel'>(
+    event: K,
+    ...args: Parameters<NonNullable<Plugin<TData, TParams>[K]>>
+  ) {
+    if (!this.plugins?.length) return;
+
+    for (const plugin of this.plugins) {
+      const handler = plugin[event];
+      (handler as (...a: unknown[]) => void)?.(...args);
+    }
+  }
+
+  private runOnBefore(args: TParams) {
+    if (!this.plugins?.length) return;
+
+    for (const plugin of this.plugins) {
+      const onBeforeResult = plugin.onBefore?.(args);
+      // 攔截，立即終止
+      if (onBeforeResult?.stopNow || onBeforeResult?.returnNow) {
+        return onBeforeResult;
+      }
+    }
+  }
+
   runAsync = async (...args: TParams): Promise<TData | undefined> => {
     const currentRequestId = ++this.requestIdRef.current;
     this.lastParams = args;
-    if (this.plugins?.length) {
-      for (const plugin of this.plugins) {
-        const onBeforeResult = plugin.onBefore?.(args);
 
-        if (onBeforeResult?.stopNow) {
-          return undefined;
-        }
-
-        if (onBeforeResult?.returnNow) {
-          const data = onBeforeResult.data;
-
-          if (this.mountedRef.current) {
-            this.setState({
-              data,
-              loading: false,
-              error: undefined,
-            });
-
-            for (const p of this.plugins) {
-              p.onSuccess?.(data as TData, args);
-            }
-
-            for (const p of this.plugins) {
-              p.onFinally?.(args, data, undefined);
-            }
-          }
-
-          return data;
-        }
-      }
+    const onBeforeResult = this.runOnBefore(args);
+    // 如果 onBefore 回傳 stopNow，則立即終止
+    if (onBeforeResult?.stopNow) {
+      return undefined;
     }
+
+    if (onBeforeResult?.returnNow) {
+      const data = onBeforeResult.data;
+
+      if (this.mountedRef.current) {
+        this.setState({
+          data,
+          loading: false,
+          error: undefined,
+        });
+
+        this.runPluginHandler('onSuccess', data as TData, args);
+        this.runPluginHandler('onFinally', args, data, undefined);
+      }
+
+      return data;
+    }
+
     this.setState({ loading: true, error: undefined });
 
     try {
@@ -116,16 +133,8 @@ class FetchInstance<TData, TParams extends any[]> {
       }
 
       this.setState({ data: result, loading: false, error: undefined });
-      if (this.plugins?.length) {
-        for (const plugin of this.plugins) {
-          plugin.onSuccess?.(result, args);
-        }
-      }
-      if (this.plugins?.length) {
-        for (const plugin of this.plugins) {
-          plugin.onFinally?.(args, result, undefined);
-        }
-      }
+      this.runPluginHandler('onSuccess', result, args);
+      this.runPluginHandler('onFinally', args, result, undefined);
 
       return result;
     } catch (error) {
@@ -138,16 +147,8 @@ class FetchInstance<TData, TParams extends any[]> {
         throw err;
       }
 
-      if (this.plugins?.length) {
-        for (const plugin of this.plugins) {
-          plugin.onError?.(err, args);
-        }
-      }
-      if (this.plugins?.length) {
-        for (const plugin of this.plugins) {
-          plugin.onFinally?.(args, undefined, err);
-        }
-      }
+      this.runPluginHandler('onError', err, args);
+      this.runPluginHandler('onFinally', args, undefined, err);
       this.setState({ loading: false, error: err });
 
       throw err;
@@ -163,11 +164,7 @@ class FetchInstance<TData, TParams extends any[]> {
   cancel = () => {
     this.requestIdRef.current += 1;
     this.setState({ loading: false });
-    if (this.plugins?.length) {
-      for (const plugin of this.plugins) {
-        plugin.onCancel?.();
-      }
-    }
+    this.runPluginHandler('onCancel');
   };
 
   refresh = () => {
