@@ -363,386 +363,491 @@ describe('useRequest', () => {
     expect(result.current.data).toEqual(mockData);
     expect(service).toHaveBeenCalledWith('id-1', 'id-2');
   });
-});
-
-describe('plugins', () => {
-  test('onBefore with stopNow: true should not call service', async () => {
+  test('refresh should call service with last params', async () => {
     const service = vi.fn().mockResolvedValue({ data: 'testing' });
-    const onBefore = vi.fn().mockReturnValue({ stopNow: true });
-    const { result } = renderHook(() => useRequest(service, { manual: true, pluginFactories: [() => ({ onBefore })] }));
+    const { result } = renderHook(() => useRequest(service, { manual: true }));
+
+    await act(async () => {
+      await result.current.runAsync('param1');
+    });
+
+    expect(service).toHaveBeenCalledTimes(1);
+    expect(service).toHaveBeenLastCalledWith('param1');
 
     act(() => {
-      result.current.run('param');
+      result.current.refresh();
     });
 
     await waitFor(() => {
-      expect(result.current.loading).toBe(false);
+      expect(service).toHaveBeenCalledTimes(2);
     });
 
-    expect(service).not.toHaveBeenCalled();
-    expect(onBefore).toHaveBeenCalledWith(['param']);
-    expect(result.current.data).toBeUndefined();
+    expect(service).toHaveBeenLastCalledWith('param1');
   });
-  test('onBefore with returnNow: true should return data without calling service', async () => {
-    const returnData = { id: 1, value: 'from plugin' };
-    const service = vi.fn().mockResolvedValue({ data: 'from service' });
-    const onBefore = vi.fn().mockReturnValue({ returnNow: true, data: returnData });
-    const onSuccess = vi.fn();
-    const onFinally = vi.fn();
-    const { result } = renderHook(() =>
-      useRequest(service, {
-        manual: true,
-        pluginFactories: [() => ({ onBefore, onSuccess, onFinally })],
-      }),
-    );
-
-    act(() => {
-      result.current.run('param');
-    });
-
-    await waitFor(() => {
-      expect(result.current.loading).toBe(false);
-    });
-
-    expect(service).not.toHaveBeenCalled();
-    expect(result.current.data).toEqual(returnData);
-    expect(onSuccess).toHaveBeenCalledWith(returnData, ['param']);
-    expect(onFinally).toHaveBeenCalledWith(['param'], returnData, undefined);
-  });
-  test('onSuccess should be called when request succeeds', async () => {
+  test('refreshAsync should call service with last params', async () => {
     const mockData = { data: 'testing' };
     const service = vi.fn().mockResolvedValue(mockData);
-    const onSuccess = vi.fn();
-    const { result } = renderHook(() =>
-      useRequest(service, { manual: true, pluginFactories: [() => ({ onSuccess })] }),
-    );
+    const { result } = renderHook(() => useRequest(service, { manual: true }));
 
     await act(async () => {
-      await result.current.runAsync('param1', 'param2');
+      await result.current.runAsync('param1');
     });
 
-    expect(onSuccess).toHaveBeenCalledWith(mockData, ['param1', 'param2']);
-  });
-  test('onError should be called when request fails', async () => {
-    const error = new Error('test error');
-    const service = vi.fn().mockRejectedValue(error);
-    const onError = vi.fn();
-    const { result } = renderHook(() => useRequest(service, { manual: true, pluginFactories: [() => ({ onError })] }));
-
-    await act(async () => {
-      try {
-        await result.current.runAsync('param');
-      } catch {
-        // ignore
-      }
-    });
-
-    expect(onError).toHaveBeenCalledWith(error, ['param']);
-  });
-  test('onFinally should be called on success with data', async () => {
-    const mockData = { data: 'testing' };
-    const service = vi.fn().mockResolvedValue(mockData);
-    const onFinally = vi.fn();
-    const { result } = renderHook(() =>
-      useRequest(service, { manual: true, pluginFactories: [() => ({ onFinally })] }),
-    );
-
-    await act(async () => {
-      await result.current.runAsync('param');
-    });
-
-    expect(onFinally).toHaveBeenCalledWith(['param'], mockData, undefined);
-  });
-  test('onFinally should be called on error with error', async () => {
-    const error = new Error('test error');
-    const service = vi.fn().mockRejectedValue(error);
-    const onFinally = vi.fn();
-    const { result } = renderHook(() =>
-      useRequest(service, { manual: true, pluginFactories: [() => ({ onFinally })] }),
-    );
-
-    await act(async () => {
-      try {
-        await result.current.runAsync('param');
-      } catch {
-        // ignore
-      }
-    });
-
-    expect(onFinally).toHaveBeenCalledWith(['param'], undefined, error);
-  });
-  test('multiple plugins should all be invoked', async () => {
-    const mockData = { data: 'testing' };
-    const service = vi.fn().mockResolvedValue(mockData);
-    const onSuccess1 = vi.fn();
-    const onSuccess2 = vi.fn();
-    const { result } = renderHook(() =>
-      useRequest(service, {
-        manual: true,
-        pluginFactories: [() => ({ onSuccess: onSuccess1 }), () => ({ onSuccess: onSuccess2 })],
-      }),
-    );
-
-    await act(async () => {
-      await result.current.runAsync('param');
-    });
-
-    expect(onSuccess1).toHaveBeenCalledWith(mockData, ['param']);
-    expect(onSuccess2).toHaveBeenCalledWith(mockData, ['param']);
-  });
-  test('later plugin onBefore with stopNow should stop request', async () => {
-    const service = vi.fn().mockResolvedValue({ data: 'testing' });
-
-    const onBefore1 = vi.fn();
-    const onBefore2 = vi.fn().mockReturnValue({ stopNow: true });
-
-    const { result } = renderHook(() =>
-      useRequest(service, {
-        manual: true,
-        pluginFactories: [() => ({ onBefore: onBefore1 }), () => ({ onBefore: onBefore2 })],
-      }),
-    );
-
-    act(() => {
-      result.current.run('param');
-    });
-
-    await waitFor(() => {
-      expect(result.current.loading).toBe(false);
-    });
-
-    expect(onBefore1).toHaveBeenCalledWith(['param']);
-    expect(onBefore2).toHaveBeenCalledWith(['param']);
-    expect(service).not.toHaveBeenCalled();
-  });
-  test('later plugin onBefore with returnNow should return data without calling service', async () => {
-    const returnData = { id: 2, value: 'from second plugin' };
-    const service = vi.fn().mockResolvedValue({ data: 'from service' });
-
-    const onBefore1 = vi.fn();
-    const onBefore2 = vi.fn().mockReturnValue({ returnNow: true, data: returnData });
-
-    const onSuccess1 = vi.fn();
-    const onSuccess2 = vi.fn();
-
-    const { result } = renderHook(() =>
-      useRequest(service, {
-        manual: true,
-        pluginFactories: [
-          () => ({ onBefore: onBefore1, onSuccess: onSuccess1 }),
-          () => ({ onBefore: onBefore2, onSuccess: onSuccess2 }),
-        ],
-      }),
-    );
-
-    act(() => {
-      result.current.run('param');
-    });
-
-    await waitFor(() => {
-      expect(result.current.loading).toBe(false);
-    });
-
-    expect(service).not.toHaveBeenCalled();
-    expect(result.current.data).toEqual(returnData);
-    expect(onSuccess1).toHaveBeenCalledWith(returnData, ['param']);
-    expect(onSuccess2).toHaveBeenCalledWith(returnData, ['param']);
-  });
-  test('runAsync should resolve plugin data when onBefore returns returnNow', async () => {
-    const returnData = { id: 1, value: 'from plugin' };
-    const service = vi.fn().mockResolvedValue({ data: 'from service' });
-
-    const { result } = renderHook(() =>
-      useRequest(service, {
-        manual: true,
-        pluginFactories: [() => ({ onBefore: () => ({ returnNow: true, data: returnData }) })],
-      }),
-    );
+    expect(service).toHaveBeenCalledTimes(1);
+    expect(service).toHaveBeenLastCalledWith('param1');
 
     let out;
     await act(async () => {
-      out = await result.current.runAsync('param');
+      out = await result.current.refreshAsync();
     });
 
-    expect(out).toEqual(returnData);
+    expect(out).toEqual(mockData);
+    expect(service).toHaveBeenCalledTimes(2);
+    expect(service).toHaveBeenLastCalledWith('param1');
+  });
+  test('refreshAsync should not call service if last params is not set', async () => {
+    const service = vi.fn().mockResolvedValue({ data: 'testing' });
+    const { result } = renderHook(() => useRequest(service, { manual: true }));
+
+    let out;
+    await act(async () => {
+      out = await result.current.refreshAsync();
+    });
+
+    expect(out).toBeUndefined();
     expect(service).not.toHaveBeenCalled();
   });
-});
-
-describe('cachePlugin', () => {
-  test('should cache data when request succeeds', async () => {
-    const service = vi.fn().mockResolvedValueOnce({ name: 'A' }).mockResolvedValueOnce({ name: 'B' });
-
-    const { result } = renderHook(() =>
-      useRequest(service, {
-        manual: true,
-        pluginFactories: [cachePlugin()],
-      }),
-    );
-
-    await act(async () => {
-      await result.current.run(1);
-    });
-
-    await act(async () => {
-      await result.current.run(1);
-    });
-
-    expect(service).toHaveBeenCalledTimes(1);
-    expect(result.current.data).toEqual({ name: 'A' });
-  });
-});
-
-describe('pollingPlugin', () => {
-  beforeEach(() => {
-    vi.useFakeTimers();
-  });
-
-  afterEach(() => {
-    vi.useRealTimers();
-  });
-  test('should poll request repeatedly', async () => {
+  test('refresh should use latest params', async () => {
     const service = vi.fn().mockResolvedValue({ data: 'testing' });
-    const { result } = renderHook(() => useRequest(service, { manual: true, pluginFactories: [pollingPlugin(1000)] }));
+    const { result } = renderHook(() => useRequest(service, { manual: true }));
 
-    await act(() => {
-      result.current.run('A');
+    await act(async () => {
+      await result.current.runAsync('param1');
     });
 
-    expect(service).toHaveBeenCalledTimes(1);
-
-    await act(() => {
-      vi.advanceTimersByTime(1000);
+    await act(async () => {
+      await result.current.runAsync('param2');
     });
 
+    act(() => {
+      result.current.refresh();
+    });
+
+    await waitFor(() => {
+      expect(service).toHaveBeenCalledTimes(3);
+    });
+
+    expect(service).toHaveBeenNthCalledWith(1, 'param1');
+    expect(service).toHaveBeenNthCalledWith(2, 'param2');
+    expect(service).toHaveBeenNthCalledWith(3, 'param2');
+  });
+  test('refreshAsync should retry with last params after previous failure', async () => {
+    const service = vi.fn().mockRejectedValueOnce(new Error('fail')).mockResolvedValueOnce({ data: 'success' });
+
+    const { result } = renderHook(() => useRequest(service, { manual: true }));
+
+    await expect(result.current.runAsync('param1')).rejects.toThrow('fail');
+
+    let out;
+    await act(async () => {
+      out = await result.current.refreshAsync();
+    });
+
+    expect(out).toEqual({ data: 'success' });
     expect(service).toHaveBeenCalledTimes(2);
-
-    await act(() => {
-      vi.advanceTimersByTime(1000);
-    });
-
-    expect(service).toHaveBeenCalledTimes(3);
-  });
-  test('should cancel request when unmount', async () => {
-    const service = vi.fn().mockResolvedValue({ data: 'testing' });
-    const { result, unmount } = renderHook(() =>
-      useRequest(service, { manual: true, pluginFactories: [pollingPlugin(1000)] }),
-    );
-    act(() => {
-      result.current.run('A');
-    });
-
-    expect(service).toHaveBeenCalledTimes(1);
-
-    unmount();
-
-    act(() => {
-      vi.advanceTimersByTime(5000);
-    });
-
-    expect(service).toHaveBeenCalledTimes(1);
-  });
-  test('pollingPlugin should stop polling when cancel is called', () => {
-    const service = vi.fn().mockResolvedValue({ data: 'testing' });
-
-    const { result } = renderHook(() =>
-      useRequest(service, {
-        manual: true,
-        pluginFactories: [pollingPlugin(1000)],
-      }),
-    );
-
-    act(() => {
-      result.current.run('A');
-    });
-
-    expect(service).toHaveBeenCalledTimes(1);
-
-    act(() => {
-      result.current.cancel();
-    });
-
-    act(() => {
-      vi.advanceTimersByTime(5000);
-    });
-
-    expect(service).toHaveBeenCalledTimes(1);
-  });
-});
-
-describe('debouncePlugin', () => {
-  beforeEach(() => {
-    vi.useFakeTimers();
+    expect(service).toHaveBeenNthCalledWith(1, 'param1');
+    expect(service).toHaveBeenNthCalledWith(2, 'param1');
   });
 
-  afterEach(() => {
-    vi.useRealTimers();
+  describe('plugins', () => {
+    test('onBefore with stopNow: true should not call service', async () => {
+      const service = vi.fn().mockResolvedValue({ data: 'testing' });
+      const onBefore = vi.fn().mockReturnValue({ stopNow: true });
+      const { result } = renderHook(() =>
+        useRequest(service, { manual: true, pluginFactories: [() => ({ onBefore })] }),
+      );
+
+      act(() => {
+        result.current.run('param');
+      });
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
+
+      expect(service).not.toHaveBeenCalled();
+      expect(onBefore).toHaveBeenCalledWith(['param']);
+      expect(result.current.data).toBeUndefined();
+    });
+    test('onBefore with returnNow: true should return data without calling service', async () => {
+      const returnData = { id: 1, value: 'from plugin' };
+      const service = vi.fn().mockResolvedValue({ data: 'from service' });
+      const onBefore = vi.fn().mockReturnValue({ returnNow: true, data: returnData });
+      const onSuccess = vi.fn();
+      const onFinally = vi.fn();
+      const { result } = renderHook(() =>
+        useRequest(service, {
+          manual: true,
+          pluginFactories: [() => ({ onBefore, onSuccess, onFinally })],
+        }),
+      );
+
+      act(() => {
+        result.current.run('param');
+      });
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
+
+      expect(service).not.toHaveBeenCalled();
+      expect(result.current.data).toEqual(returnData);
+      expect(onSuccess).toHaveBeenCalledWith(returnData, ['param']);
+      expect(onFinally).toHaveBeenCalledWith(['param'], returnData, undefined);
+    });
+    test('onSuccess should be called when request succeeds', async () => {
+      const mockData = { data: 'testing' };
+      const service = vi.fn().mockResolvedValue(mockData);
+      const onSuccess = vi.fn();
+      const { result } = renderHook(() =>
+        useRequest(service, { manual: true, pluginFactories: [() => ({ onSuccess })] }),
+      );
+
+      await act(async () => {
+        await result.current.runAsync('param1', 'param2');
+      });
+
+      expect(onSuccess).toHaveBeenCalledWith(mockData, ['param1', 'param2']);
+    });
+    test('onError should be called when request fails', async () => {
+      const error = new Error('test error');
+      const service = vi.fn().mockRejectedValue(error);
+      const onError = vi.fn();
+      const { result } = renderHook(() =>
+        useRequest(service, { manual: true, pluginFactories: [() => ({ onError })] }),
+      );
+
+      await act(async () => {
+        try {
+          await result.current.runAsync('param');
+        } catch {
+          // ignore
+        }
+      });
+
+      expect(onError).toHaveBeenCalledWith(error, ['param']);
+    });
+    test('onFinally should be called on success with data', async () => {
+      const mockData = { data: 'testing' };
+      const service = vi.fn().mockResolvedValue(mockData);
+      const onFinally = vi.fn();
+      const { result } = renderHook(() =>
+        useRequest(service, { manual: true, pluginFactories: [() => ({ onFinally })] }),
+      );
+
+      await act(async () => {
+        await result.current.runAsync('param');
+      });
+
+      expect(onFinally).toHaveBeenCalledWith(['param'], mockData, undefined);
+    });
+    test('onFinally should be called on error with error', async () => {
+      const error = new Error('test error');
+      const service = vi.fn().mockRejectedValue(error);
+      const onFinally = vi.fn();
+      const { result } = renderHook(() =>
+        useRequest(service, { manual: true, pluginFactories: [() => ({ onFinally })] }),
+      );
+
+      await act(async () => {
+        try {
+          await result.current.runAsync('param');
+        } catch {
+          // ignore
+        }
+      });
+
+      expect(onFinally).toHaveBeenCalledWith(['param'], undefined, error);
+    });
+    test('multiple plugins should all be invoked', async () => {
+      const mockData = { data: 'testing' };
+      const service = vi.fn().mockResolvedValue(mockData);
+      const onSuccess1 = vi.fn();
+      const onSuccess2 = vi.fn();
+      const { result } = renderHook(() =>
+        useRequest(service, {
+          manual: true,
+          pluginFactories: [() => ({ onSuccess: onSuccess1 }), () => ({ onSuccess: onSuccess2 })],
+        }),
+      );
+
+      await act(async () => {
+        await result.current.runAsync('param');
+      });
+
+      expect(onSuccess1).toHaveBeenCalledWith(mockData, ['param']);
+      expect(onSuccess2).toHaveBeenCalledWith(mockData, ['param']);
+    });
+    test('later plugin onBefore with stopNow should stop request', async () => {
+      const service = vi.fn().mockResolvedValue({ data: 'testing' });
+
+      const onBefore1 = vi.fn();
+      const onBefore2 = vi.fn().mockReturnValue({ stopNow: true });
+
+      const { result } = renderHook(() =>
+        useRequest(service, {
+          manual: true,
+          pluginFactories: [() => ({ onBefore: onBefore1 }), () => ({ onBefore: onBefore2 })],
+        }),
+      );
+
+      act(() => {
+        result.current.run('param');
+      });
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
+
+      expect(onBefore1).toHaveBeenCalledWith(['param']);
+      expect(onBefore2).toHaveBeenCalledWith(['param']);
+      expect(service).not.toHaveBeenCalled();
+    });
+    test('later plugin onBefore with returnNow should return data without calling service', async () => {
+      const returnData = { id: 2, value: 'from second plugin' };
+      const service = vi.fn().mockResolvedValue({ data: 'from service' });
+
+      const onBefore1 = vi.fn();
+      const onBefore2 = vi.fn().mockReturnValue({ returnNow: true, data: returnData });
+
+      const onSuccess1 = vi.fn();
+      const onSuccess2 = vi.fn();
+
+      const { result } = renderHook(() =>
+        useRequest(service, {
+          manual: true,
+          pluginFactories: [
+            () => ({ onBefore: onBefore1, onSuccess: onSuccess1 }),
+            () => ({ onBefore: onBefore2, onSuccess: onSuccess2 }),
+          ],
+        }),
+      );
+
+      act(() => {
+        result.current.run('param');
+      });
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
+
+      expect(service).not.toHaveBeenCalled();
+      expect(result.current.data).toEqual(returnData);
+      expect(onSuccess1).toHaveBeenCalledWith(returnData, ['param']);
+      expect(onSuccess2).toHaveBeenCalledWith(returnData, ['param']);
+    });
+    test('runAsync should resolve plugin data when onBefore returns returnNow', async () => {
+      const returnData = { id: 1, value: 'from plugin' };
+      const service = vi.fn().mockResolvedValue({ data: 'from service' });
+
+      const { result } = renderHook(() =>
+        useRequest(service, {
+          manual: true,
+          pluginFactories: [() => ({ onBefore: () => ({ returnNow: true, data: returnData }) })],
+        }),
+      );
+
+      let out;
+      await act(async () => {
+        out = await result.current.runAsync('param');
+      });
+
+      expect(out).toEqual(returnData);
+      expect(service).not.toHaveBeenCalled();
+    });
   });
-  test('debouncePlugin should clear pending request after unmount', () => {
-    const service = vi.fn().mockResolvedValue({ data: 'testing' });
 
-    const { result, unmount } = renderHook(() =>
-      useRequest(service, {
-        manual: true,
-        pluginFactories: [debouncePlugin(1000)],
-      }),
-    );
+  describe('cachePlugin', () => {
+    test('should cache data when request succeeds', async () => {
+      const service = vi.fn().mockResolvedValueOnce({ name: 'A' }).mockResolvedValueOnce({ name: 'B' });
 
-    act(() => {
-      result.current.run('A');
+      const { result } = renderHook(() =>
+        useRequest(service, {
+          manual: true,
+          pluginFactories: [cachePlugin()],
+        }),
+      );
+
+      await act(async () => {
+        await result.current.run(1);
+      });
+
+      await act(async () => {
+        await result.current.run(1);
+      });
+
+      expect(service).toHaveBeenCalledTimes(1);
+      expect(result.current.data).toEqual({ name: 'A' });
     });
-
-    unmount();
-
-    act(() => {
-      vi.advanceTimersByTime(1000);
-    });
-
-    expect(service).toHaveBeenCalledTimes(0);
   });
-  test('debouncePlugin should cancel request when cancel is called', async () => {
-    const service = vi.fn().mockResolvedValue({ data: 'testing' });
-    const { result } = renderHook(() => useRequest(service, { manual: true, pluginFactories: [debouncePlugin(1000)] }));
-    await act(async () => {
-      result.current.run('A');
+
+  describe('pollingPlugin', () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
     });
 
-    expect(service).toHaveBeenCalledTimes(0);
-
-    await act(async () => {
-      result.current.cancel();
+    afterEach(() => {
+      vi.useRealTimers();
     });
+    test('should poll request repeatedly', async () => {
+      const service = vi.fn().mockResolvedValue({ data: 'testing' });
+      const { result } = renderHook(() =>
+        useRequest(service, { manual: true, pluginFactories: [pollingPlugin(1000)] }),
+      );
 
-    await act(async () => {
-      vi.advanceTimersByTime(1000);
+      await act(() => {
+        result.current.run('A');
+      });
+
+      expect(service).toHaveBeenCalledTimes(1);
+
+      await act(() => {
+        vi.advanceTimersByTime(1000);
+      });
+
+      expect(service).toHaveBeenCalledTimes(2);
+
+      await act(() => {
+        vi.advanceTimersByTime(1000);
+      });
+
+      expect(service).toHaveBeenCalledTimes(3);
     });
+    test('should cancel request when unmount', async () => {
+      const service = vi.fn().mockResolvedValue({ data: 'testing' });
+      const { result, unmount } = renderHook(() =>
+        useRequest(service, { manual: true, pluginFactories: [pollingPlugin(1000)] }),
+      );
+      act(() => {
+        result.current.run('A');
+      });
 
-    expect(service).toHaveBeenCalledTimes(0);
+      expect(service).toHaveBeenCalledTimes(1);
+
+      unmount();
+
+      act(() => {
+        vi.advanceTimersByTime(5000);
+      });
+
+      expect(service).toHaveBeenCalledTimes(1);
+    });
+    test('pollingPlugin should stop polling when cancel is called', () => {
+      const service = vi.fn().mockResolvedValue({ data: 'testing' });
+
+      const { result } = renderHook(() =>
+        useRequest(service, {
+          manual: true,
+          pluginFactories: [pollingPlugin(1000)],
+        }),
+      );
+
+      act(() => {
+        result.current.run('A');
+      });
+
+      expect(service).toHaveBeenCalledTimes(1);
+
+      act(() => {
+        result.current.cancel();
+      });
+
+      act(() => {
+        vi.advanceTimersByTime(5000);
+      });
+
+      expect(service).toHaveBeenCalledTimes(1);
+    });
   });
-  test('should debounce request', async () => {
-    const service = vi.fn().mockResolvedValue({ data: 'testing' });
-    const { result } = renderHook(() => useRequest(service, { manual: true, pluginFactories: [debouncePlugin(1000)] }));
 
-    act(() => {
-      result.current.run('A');
-      result.current.run('B');
-      result.current.run('C');
+  describe('debouncePlugin', () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
     });
 
-    // 時間還沒到，不應該發 request
-    expect(service).toHaveBeenCalledTimes(0);
-
-    act(() => {
-      vi.advanceTimersByTime(999);
+    afterEach(() => {
+      vi.useRealTimers();
     });
+    test('debouncePlugin should clear pending request after unmount', () => {
+      const service = vi.fn().mockResolvedValue({ data: 'testing' });
 
-    expect(service).toHaveBeenCalledTimes(0);
+      const { result, unmount } = renderHook(() =>
+        useRequest(service, {
+          manual: true,
+          pluginFactories: [debouncePlugin(1000)],
+        }),
+      );
 
-    act(async () => {
-      vi.advanceTimersByTime(1);
+      act(() => {
+        result.current.run('A');
+      });
+
+      unmount();
+
+      act(() => {
+        vi.advanceTimersByTime(1000);
+      });
+
+      expect(service).toHaveBeenCalledTimes(0);
     });
+    test('debouncePlugin should cancel request when cancel is called', async () => {
+      const service = vi.fn().mockResolvedValue({ data: 'testing' });
+      const { result } = renderHook(() =>
+        useRequest(service, { manual: true, pluginFactories: [debouncePlugin(1000)] }),
+      );
+      await act(async () => {
+        result.current.run('A');
+      });
 
-    expect(service).toHaveBeenCalledTimes(1);
-    expect(service).toHaveBeenCalledWith('C');
+      expect(service).toHaveBeenCalledTimes(0);
+
+      await act(async () => {
+        result.current.cancel();
+      });
+
+      await act(async () => {
+        vi.advanceTimersByTime(1000);
+      });
+
+      expect(service).toHaveBeenCalledTimes(0);
+    });
+    test('should debounce request', async () => {
+      const service = vi.fn().mockResolvedValue({ data: 'testing' });
+      const { result } = renderHook(() =>
+        useRequest(service, { manual: true, pluginFactories: [debouncePlugin(1000)] }),
+      );
+
+      act(() => {
+        result.current.run('A');
+        result.current.run('B');
+        result.current.run('C');
+      });
+
+      // 時間還沒到，不應該發 request
+      expect(service).toHaveBeenCalledTimes(0);
+
+      act(() => {
+        vi.advanceTimersByTime(999);
+      });
+
+      expect(service).toHaveBeenCalledTimes(0);
+
+      act(async () => {
+        vi.advanceTimersByTime(1);
+      });
+
+      expect(service).toHaveBeenCalledTimes(1);
+      expect(service).toHaveBeenCalledWith('C');
+    });
   });
 });

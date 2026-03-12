@@ -54,6 +54,7 @@ class FetchInstance<TData, TParams extends any[]> {
   setPlugins: (plugins: Plugin<TData, TParams>[]) => void = plugins => {
     this.plugins = plugins;
   };
+  lastParams: TParams | null = null;
 
   constructor(
     service: Service<TData, TParams>,
@@ -65,11 +66,12 @@ class FetchInstance<TData, TParams extends any[]> {
     this.requestIdRef = requestIdRef;
     this.mountedRef = mountedRef;
     this.setState = setState;
+    this.lastParams = null;
   }
 
   runAsync = async (...args: TParams): Promise<TData | undefined> => {
     const currentRequestId = ++this.requestIdRef.current;
-
+    this.lastParams = args;
     if (this.plugins?.length) {
       for (const plugin of this.plugins) {
         const onBeforeResult = plugin.onBefore?.(args);
@@ -166,6 +168,19 @@ class FetchInstance<TData, TParams extends any[]> {
         plugin.onCancel?.();
       }
     }
+  };
+
+  refresh = () => {
+    this.refreshAsync().catch(() => {
+      // ignore error，錯誤已透過 setError 更新
+    });
+  };
+
+  refreshAsync = async () => {
+    if (!this.lastParams) {
+      return;
+    }
+    return this.runAsync(...this.lastParams);
   };
 }
 
@@ -374,5 +389,7 @@ export function useRequest<TData, TParams extends any[]>(
     run: fetchInstance.run,
     runAsync: fetchInstance.runAsync,
     cancel: fetchInstance.cancel,
+    refresh: fetchInstance.refresh,
+    refreshAsync: fetchInstance.refreshAsync,
   };
 }
