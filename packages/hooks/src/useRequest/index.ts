@@ -239,6 +239,68 @@ export const debouncePlugin = <TData, TParams extends any[]>(debounceTime: numbe
   };
 };
 
+export const retryPlugin = <TData, TParams extends any[]>(
+  retryCount: number,
+  retryInterval: number,
+): PluginFactory<TData, TParams> => {
+  return (fetchInstance: FetchInstance<TData, TParams>) => {
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    let shouldBypassReset = false;
+    let remainingRetryCount = retryCount;
+
+    return {
+      onBefore() {
+        // 如果是 plugin 自己補發的那一次，則不重置次數
+        if (shouldBypassReset) {
+          shouldBypassReset = false;
+          return;
+        }
+
+        // 當使用者重新發起新的請求時，重置次數，並清除 timer
+        if (timer) {
+          clearTimeout(timer);
+          timer = null;
+        }
+        remainingRetryCount = retryCount;
+      },
+      onSuccess() {
+        // 成功後，把 retry 重置回初始值，讓下一次的 request 重新開始
+        remainingRetryCount = retryCount;
+        if (timer) {
+          clearTimeout(timer);
+          timer = null;
+        }
+        shouldBypassReset = false;
+      },
+      onError(error, params) {
+        if (timer) {
+          clearTimeout(timer);
+          timer = null;
+        }
+        // 如果還有 retry 次數，則安排下一次的 timer
+        if (remainingRetryCount > 0) {
+          remainingRetryCount--;
+          timer = setTimeout(() => {
+            timer = null;
+            shouldBypassReset = true;
+            fetchInstance.run(...params);
+          }, retryInterval);
+        }
+      },
+      onCancel() {
+        // 清楚 timer
+        // 重置狀態
+        if (timer) {
+          clearTimeout(timer);
+          timer = null;
+        }
+        remainingRetryCount = retryCount;
+        shouldBypassReset = false;
+      },
+    };
+  };
+};
+
 export const pollingPlugin = <TData, TParams extends any[]>(interval: number): PluginFactory<TData, TParams> => {
   return (fetchInstance: FetchInstance<TData, TParams>) => {
     let timer: ReturnType<typeof setTimeout> | null = null;
