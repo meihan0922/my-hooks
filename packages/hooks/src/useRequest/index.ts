@@ -182,6 +182,16 @@ class FetchInstance<TData, TParams extends any[]> {
     }
     return this.runAsync(...this.lastParams);
   };
+
+  mutate = (data: TData | ((prev?: TData) => TData)) => {
+    this.setState(prev => {
+      const newData = typeof data === 'function' ? (data as (prev?: TData) => TData)(prev.data) : data;
+
+      return {
+        data: newData,
+      };
+    });
+  };
 }
 
 export const cachePlugin = <TData, TParams extends any[]>(
@@ -391,5 +401,6 @@ export function useRequest<TData, TParams extends any[]>(
     cancel: fetchInstance.cancel,
     refresh: fetchInstance.refresh,
     refreshAsync: fetchInstance.refreshAsync,
+    mutate: fetchInstance.mutate,
   };
 }

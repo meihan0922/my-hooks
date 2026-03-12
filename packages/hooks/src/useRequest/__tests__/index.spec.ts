@@ -458,6 +458,50 @@ describe('useRequest', () => {
     expect(service).toHaveBeenNthCalledWith(1, 'param1');
     expect(service).toHaveBeenNthCalledWith(2, 'param1');
   });
+  test('mutate should update data directly', async () => {
+    const service = vi.fn().mockResolvedValue({ value: 1 });
+    const { result } = renderHook(() => useRequest(service, { manual: true }));
+
+    await act(async () => {
+      await result.current.runAsync();
+    });
+
+    act(() => {
+      result.current.mutate({ value: 2 });
+    });
+
+    expect(result.current.data).toEqual({ value: 2 });
+  });
+  test('mutate should support updater function', async () => {
+    const service = vi.fn().mockResolvedValue({ count: 1 });
+    const { result } = renderHook(() => useRequest(service, { manual: true }));
+
+    await act(async () => {
+      await result.current.runAsync();
+    });
+
+    act(() => {
+      result.current.mutate((prev: { count: number }) => ({
+        count: prev!.count + 1,
+      }));
+    });
+
+    expect(result.current.data).toEqual({ count: 2 });
+  });
+  test('mutate should not trigger service call', async () => {
+    const service = vi.fn().mockResolvedValue({ value: 1 });
+    const { result } = renderHook(() => useRequest(service, { manual: true }));
+
+    await act(async () => {
+      await result.current.runAsync();
+    });
+
+    act(() => {
+      result.current.mutate({ value: 2 });
+    });
+
+    expect(service).toHaveBeenCalledTimes(1);
+  });
 
   describe('plugins', () => {
     test('onBefore with stopNow: true should not call service', async () => {
