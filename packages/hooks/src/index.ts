@@ -5,6 +5,7 @@ export { useToggle, type Actions as UseToggleActions } from './useToggle';
 
 // advanced
 export { useControllableValue } from './useControllableValue';
+export { useCreation } from './useCreation';
 export { useLatest } from './useLatest';
 export { useMemoizedFn } from './useMemorizedFn';
 
@@ -15,6 +16,7 @@ export { useUnmount } from './useUnmount';
 // effect
 export { useDebounceFn } from './useDebounceFn';
 export { useInterval } from './useInterval';
+export { useLockFn } from './useLockFn';
 export { useThrottleFn } from './useThrottleFn';
 export { useTimeout } from './useTimeout';
 export { useUpdate } from './useUpdate';
