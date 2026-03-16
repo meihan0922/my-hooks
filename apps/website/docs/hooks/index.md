@@ -1,19 +1,20 @@
 # Hooks 列表
 
-| 分类             | Hook 名称                  | 目的                                                                                |
-| :--------------- | :------------------------- | :---------------------------------------------------------------------------------- |
-| **副作用管理**   | `useUpdate`                | 強制更新 re-render 一次                                                             |
-|                  | `useInterval`              | hook 方式建立 setInterval                                                           |
-|                  | `useTimeout`               | hook 方式建立 setTimeout                                                            |
-| **狀態管理**     | `useSetState`              | 管理物件型的 state，用法與 class 組件的 `this.setState` 一致                        |
-|                  | `useBoolean` / `useToggle` | 管理兩個值之間的切換                                                                |
-|                  | `useDebounceFn`            | 處理防抖的 hook                                                                     |
-|                  | `useThrottleFn`            | 處理節流的 hook                                                                     |
-| **DOM 與瀏覽器** | `useEventListener`         | 監聽元素事件                                                                        |
-| **生命周期**     | `useUnmount`               | 僅在組件卸載時行清理函式                                                            |
-|                  | `useMount`                 | 元件 mount 時，執行一次函式                                                         |
-| **Advanced**     | `useMemoizedFn`            | 持久化函式的 hook                                                                   |
-|                  | `useControllableValue`     | 讓元件可以同時支援受控與非受控                                                      |
-|                  | `useLatest`                | 不觸發 render 的快照，回傳 ref，ref.current 永遠存最新的值                          |
-|                  | `useCreation`              | 解決「絕對只執行一次的初始化」的 hook                                               |
-| **Request**      | `useRequest`               | 管理異步數據的 hooks，已包含自動與手動請求、防抖、重新請求、polling、錯誤重試、緩存 |
+| 分类             | Hook 名称                                                                                 | 目的                                                                                |
+| :--------------- | :---------------------------------------------------------------------------------------- | :---------------------------------------------------------------------------------- |
+| **副作用管理**   | `useUpdate`                                                                               | 強制更新 re-render 一次                                                             |
+|                  | `useInterval`                                                                             | hook 方式建立 setInterval                                                           |
+|                  | `useTimeout`                                                                              | hook 方式建立 setTimeout                                                            |
+| **狀態管理**     | `useSetState`                                                                             | 管理物件型的 state，用法與 class 組件的 `this.setState` 一致                        |
+|                  | `useBoolean` / `useToggle`                                                                | 管理兩個值之間的切換                                                                |
+|                  | `useDebounceFn`                                                                           | 處理防抖的 hook                                                                     |
+|                  | `useThrottleFn`                                                                           | 處理節流的 hook                                                                     |
+|                  | `useStorageState` 提供 `useLocalStorageState`、`useSessionStorageState`、`useCookieState` | 將狀態儲存到 localStorage、sessionStorage 與 Cookie 的 hook                         |
+| **DOM 與瀏覽器** | `useEventListener`                                                                        | 監聽元素事件                                                                        |
+| **生命周期**     | `useUnmount`                                                                              | 僅在組件卸載時行清理函式                                                            |
+|                  | `useMount`                                                                                | 元件 mount 時，執行一次函式                                                         |
+| **Advanced**     | `useMemoizedFn`                                                                           | 持久化函式的 hook                                                                   |
+|                  | `useControllableValue`                                                                    | 讓元件可以同時支援受控與非受控                                                      |
+|                  | `useLatest`                                                                               | 不觸發 render 的快照，回傳 ref，ref.current 永遠存最新的值                          |
+|                  | `useCreation`                                                                             | 解決「絕對只執行一次的初始化」的 hook                                               |
+| **Request**      | `useRequest`                                                                              | 管理異步數據的 hooks，已包含自動與手動請求、防抖、重新請求、polling、錯誤重試、緩存 |

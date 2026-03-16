@@ -9,7 +9,6 @@ export default tsLint.config({
   files: ['**/*.{js,jsx,ts,tsx}'],
   ignores: ['**/*/coverage/**/*', '**/*/build/**/*', '**/*/es/**/*', '**/*/dist/**/*', 'vitest.config.ts'],
   rules: {
-    'no-console': 'warn',
     'prettier/prettier': 'error',
     'simple-import-sort/imports': 'error',
     'simple-import-sort/exports': 'error',
