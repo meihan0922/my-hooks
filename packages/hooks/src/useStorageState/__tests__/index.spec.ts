@@ -1,7 +1,7 @@
 import { act, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
-import { useLocalStorageState, useSessionStorageState } from '..';
+import { useCookieState, useLocalStorageState, useSessionStorageState } from '..';
 
 describe('useLocalStorageState', () => {
   beforeEach(() => {
@@ -196,5 +196,117 @@ describe('useSessionStorageState', () => {
 
     expect(result.current[0]).toBe(2);
     expect(window.sessionStorage.getItem('count')).toBe(JSON.stringify(2));
+  });
+});
+
+describe('useCookieState', () => {
+  beforeEach(() => {
+    // 清空測試會用到的 cookie
+    document.cookie = 'count=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
+    document.cookie = 'flag=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
+    document.cookie = 'text=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
+    document.cookie = 'bad=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
+    vi.restoreAllMocks();
+  });
+
+  test('should initialize with defaultValue when cookie is empty', () => {
+    const { result } = renderHook(() => useCookieState<number>('count', { defaultValue: 0 }));
+
+    expect(result.current[0]).toBe(0);
+  });
+
+  test('should initialize with value from cookie if present', () => {
+    document.cookie = `count=${encodeURIComponent(JSON.stringify(123))}; path=/`;
+
+    const { result } = renderHook(() => useCookieState<number>('count', { defaultValue: 0 }));
+
+    expect(result.current[0]).toBe(123);
+  });
+
+  test('should update state and cookie when setValue is called', () => {
+    const { result } = renderHook(() => useCookieState<number>('count', { defaultValue: 0 }));
+
+    act(() => {
+      result.current[1](456);
+    });
+
+    expect(result.current[0]).toBe(456);
+    expect(document.cookie).toContain(`count=${encodeURIComponent(JSON.stringify(456))}`);
+  });
+
+  test('should support updater function', () => {
+    const { result } = renderHook(() => useCookieState<number>('count', { defaultValue: 1 }));
+
+    act(() => {
+      result.current[1](prev => (prev ?? 0) + 1);
+    });
+
+    expect(result.current[0]).toBe(2);
+    expect(document.cookie).toContain(`count=${encodeURIComponent(JSON.stringify(2))}`);
+  });
+
+  test('should remove cookie when setValue(undefined) is called', () => {
+    document.cookie = `count=${encodeURIComponent(JSON.stringify(123))}; path=/`;
+
+    const { result } = renderHook(() => useCookieState<number | undefined>('count', { defaultValue: 0 }));
+
+    act(() => {
+      result.current[1](undefined);
+    });
+
+    expect(result.current[0]).toBeUndefined();
+    expect(document.cookie).not.toContain('count=');
+  });
+
+  test('should store falsy number value 0', () => {
+    const { result } = renderHook(() => useCookieState<number>('count', { defaultValue: 1 }));
+
+    act(() => {
+      result.current[1](0);
+    });
+
+    expect(result.current[0]).toBe(0);
+    expect(document.cookie).toContain(`count=${encodeURIComponent(JSON.stringify(0))}`);
+  });
+
+  test('should store falsy boolean value false', () => {
+    const { result } = renderHook(() => useCookieState<boolean>('flag', { defaultValue: true }));
+
+    act(() => {
+      result.current[1](false);
+    });
+
+    expect(result.current[0]).toBe(false);
+    expect(document.cookie).toContain(`flag=${encodeURIComponent(JSON.stringify(false))}`);
+  });
+
+  test('should store falsy string value empty string', () => {
+    const { result } = renderHook(() => useCookieState<string>('text', { defaultValue: 'hello' }));
+
+    act(() => {
+      result.current[1]('');
+    });
+
+    expect(result.current[0]).toBe('');
+    expect(document.cookie).toContain(`text=${encodeURIComponent(JSON.stringify(''))}`);
+  });
+
+  test('should fall back to defaultValue when cookie contains invalid JSON', () => {
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    document.cookie = 'bad=not-json; path=/';
+
+    const { result } = renderHook(() => useCookieState<number>('bad', { defaultValue: 99 }));
+
+    expect(result.current[0]).toBe(99);
+    expect(errorSpy).toHaveBeenCalled();
+  });
+
+  test('should support lazy defaultValue', () => {
+    const factory = vi.fn(() => 42);
+
+    const { result } = renderHook(() => useCookieState<number>('count', { defaultValue: factory }));
+
+    expect(result.current[0]).toBe(42);
+    expect(factory).toHaveBeenCalledTimes(1);
   });
 });

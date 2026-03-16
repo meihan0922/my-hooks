@@ -2,10 +2,11 @@
 
 將 state 持久化儲存至 `localStorage` 或 `sessionStorage`，用法與 `useState` 一致。
 
-此模組提供兩個 Hook：
+此模組提供三個 Hook：
 
 - **useLocalStorageState**：儲存至 `localStorage`，資料在瀏覽器關閉後仍會保留
 - **useSessionStorageState**：儲存至 `sessionStorage`，資料在分頁關閉後即清除
+- **useCookieState**：儲存至 Cookie，資料可隨請求傳送至伺服器
 
 ## API
 
@@ -24,6 +25,17 @@ const [state, setState] = useLocalStorageState<T>(
 
 ```typescript
 const [state, setState] = useSessionStorageState<T>(
+  key: string,
+  options?: {
+    defaultValue?: T | (() => T);
+  }
+);
+```
+
+### useCookieState
+
+```typescript
+const [state, setState] = useCookieState<T>(
   key: string,
   options?: {
     defaultValue?: T | (() => T);
@@ -50,8 +62,9 @@ const [state, setState] = useSessionStorageState<T>(
 
 - 儲存時會使用 `JSON.stringify` 序列化，讀取時使用 `JSON.parse` 反序列化
 - 當 `setState(undefined)` 時，會從 storage 中移除該 key
-- 在 SSR 環境（`window` 為 undefined）時，會回傳 `defaultValue`，不會存取 storage
+- 在 SSR 環境（`window` / `document` 為 undefined）時，會回傳 `defaultValue`，不會存取 storage
 - 若 JSON 解析失敗，會回傳 `defaultValue` 並在 console 輸出錯誤
+- **useCookieState**：Cookie 預設 `path=/`，清除時會設定過期時間以刪除
 
 ## Basic - useLocalStorageState
 
@@ -94,6 +107,30 @@ function Demo() {
     <div>
       <p>current value: {value}</p>
       <button onClick={() => setValue('updated')}>更新</button>
+    </div>
+  );
+}
+```
+
+## Basic - useCookieState
+
+```jsx
+import { useCookieState } from '@my-hooks/hooks';
+
+function Demo() {
+  const [value, setValue] =
+    useCookieState <
+    string >
+    ('theme',
+    {
+      defaultValue: 'light',
+    });
+
+  return (
+    <div>
+      <p>current theme: {value}</p>
+      <button onClick={() => setValue('light')}>Light</button>
+      <button onClick={() => setValue('dark')}>Dark</button>
     </div>
   );
 }

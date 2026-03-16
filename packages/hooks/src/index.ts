@@ -1,7 +1,7 @@
 // state
 export { useBoolean, type Actions as UseBooleanActions } from './useBoolean';
 export { type SetState as UseSetState, useSetState } from './useSetState';
-export { useLocalStorageState, useSessionStorageState } from './useStorageState';
+export { useCookieState, useLocalStorageState, useSessionStorageState } from './useStorageState';
 export { useToggle, type Actions as UseToggleActions } from './useToggle';
 
 // advanced
