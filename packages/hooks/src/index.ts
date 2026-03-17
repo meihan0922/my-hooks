@@ -7,6 +7,7 @@ export { useToggle, type Actions as UseToggleActions } from './useToggle';
 // advanced
 export { useControllableValue } from './useControllableValue';
 export { useCreation } from './useCreation';
+export { useEventEmitter } from './useEventEmitter';
 export { useLatest } from './useLatest';
 export { useMemoizedFn } from './useMemorizedFn';
 
