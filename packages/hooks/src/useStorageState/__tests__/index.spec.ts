@@ -1,7 +1,7 @@
 import { act, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
-import { useCookieState, useLocalStorageState, useSessionStorageState } from '..';
+import { createStorageStateHook, useCookieState, useLocalStorageState, useSessionStorageState } from '..';
 
 describe('useLocalStorageState', () => {
   beforeEach(() => {
@@ -134,6 +134,73 @@ describe('useLocalStorageState', () => {
     const { result } = renderHook(() => useLocalStorageState<number>('count', { defaultValue: factory }));
 
     expect(result.current[0]).toBe(7);
+  });
+
+  test('should still update state when storage.setItem throws', () => {
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new Error('QuotaExceededError');
+    });
+
+    const { result } = renderHook(() => useLocalStorageState<number>('count', { defaultValue: 0 }));
+
+    act(() => {
+      result.current[1](123);
+    });
+
+    expect(result.current[0]).toBe(123);
+    expect(errorSpy).toHaveBeenCalledWith('Error setting storage item count:', expect.any(Error));
+  });
+
+  test('should still update state when storage.removeItem throws', () => {
+    window.localStorage.setItem('count', JSON.stringify(123));
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    vi.spyOn(Storage.prototype, 'removeItem').mockImplementation(() => {
+      throw new Error('Storage error');
+    });
+
+    const { result } = renderHook(() => useLocalStorageState<number | undefined>('count', { defaultValue: 0 }));
+
+    act(() => {
+      result.current[1](undefined);
+    });
+
+    expect(result.current[0]).toBeUndefined();
+    expect(errorSpy).toHaveBeenCalledWith('Error setting storage item count:', expect.any(Error));
+  });
+});
+
+describe('useStorageState with undefined storage (SSR)', () => {
+  const useStorageStateNoStorage = createStorageStateHook(() => undefined);
+
+  beforeEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  test('should use defaultValue when storage is undefined', () => {
+    const { result } = renderHook(() => useStorageStateNoStorage<number>('count', { defaultValue: 42 }));
+
+    expect(result.current[0]).toBe(42);
+  });
+
+  test('should update state when storage is undefined (no-op for persistence)', () => {
+    const { result } = renderHook(() => useStorageStateNoStorage<number>('count', { defaultValue: 0 }));
+
+    act(() => {
+      result.current[1](100);
+    });
+
+    expect(result.current[0]).toBe(100);
+  });
+
+  test('should support setValue(undefined) when storage is undefined', () => {
+    const { result } = renderHook(() => useStorageStateNoStorage<number | undefined>('count', { defaultValue: 0 }));
+
+    act(() => {
+      result.current[1](undefined);
+    });
+
+    expect(result.current[0]).toBeUndefined();
   });
 });
 
@@ -308,5 +375,13 @@ describe('useCookieState', () => {
 
     expect(result.current[0]).toBe(42);
     expect(factory).toHaveBeenCalledTimes(1);
+  });
+
+  test('should initialize with defaultValue when cookie has other keys but not target key', () => {
+    document.cookie = 'other=value; path=/';
+
+    const { result } = renderHook(() => useCookieState<number>('count', { defaultValue: 99 }));
+
+    expect(result.current[0]).toBe(99);
   });
 });
