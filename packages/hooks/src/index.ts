@@ -21,6 +21,7 @@ export { useMount } from './useMount';
 export { useUnmount } from './useUnmount';
 
 // effect
+export { useAsyncEffect } from './useAsyncEffect';
 export { useDebounceFn } from './useDebounceFn';
 export { useInterval } from './useInterval';
 export { useLockFn } from './useLockFn';
