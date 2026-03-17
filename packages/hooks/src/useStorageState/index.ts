@@ -8,7 +8,7 @@ type StateStorage = {
   removeItem: (key: string) => void;
 };
 
-function createStorageStateHook(getStorage: () => StateStorage | undefined) {
+export function createStorageStateHook(getStorage: () => StateStorage | undefined) {
   return function useStorageState<T>(
     key: string,
     options: {
