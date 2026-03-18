@@ -1,2 +1,5 @@
 myignore
 rspress
+unstub
+mousedown
+touchstart
