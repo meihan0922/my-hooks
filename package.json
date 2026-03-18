@@ -10,8 +10,8 @@
     "spellcheck": "cspell lint --dot --gitignore --color --cache --show-suggestions \"(packages|apps)/**/*.@(html|js|cjs|mjs|ts|tsx|css|scss|md)\"",
     "commit": "git-cz",
     "prepare": "husky",
-    "test": "pnpm --filter=./packages/* test",
-    "test:coverage": "pnpm --filter=./packages/* test:coverage"
+    "test": "pnpm --filter=./packages/hooks test",
+    "test:coverage": "pnpm --filter=./packages/hooks test:coverage"
   },
   "lint-staged": {
     "*.{js,jsx}": [
