@@ -30,6 +30,7 @@ export { useTimeout } from './useTimeout';
 export { useUpdate } from './useUpdate';
 
 // dom
+export { useClickAway } from './useClickAway';
 export { useEventListener } from './useEventListener';
 
 // request

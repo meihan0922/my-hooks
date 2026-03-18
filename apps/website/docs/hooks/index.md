@@ -11,6 +11,7 @@
 |                  | `useThrottleFn`                                                                           | 處理節流的 hook                                                                     |
 |                  | `useStorageState` 提供 `useLocalStorageState`、`useSessionStorageState`、`useCookieState` | 將狀態儲存到 localStorage、sessionStorage 與 Cookie 的 hook                         |
 | **DOM 與瀏覽器** | `useEventListener`                                                                        | 監聽元素事件                                                                        |
+|                  | `useClickAway`                                                                            |                                                                                     |
 | **生命周期**     | `useUnmount`                                                                              | 僅在組件卸載時行清理函式                                                            |
 |                  | `useMount`                                                                                | 元件 mount 時，執行一次函式                                                         |
 | **Advanced**     | `useMemoizedFn`                                                                           | 持久化函式的 hook                                                                   |
