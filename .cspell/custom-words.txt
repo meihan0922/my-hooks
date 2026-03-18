@@ -3,3 +3,5 @@ rspress
 unstub
 mousedown
 touchstart
+focusin
+focusout
