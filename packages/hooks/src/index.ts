@@ -38,4 +38,5 @@ export { useFocusWithin } from './useFocusWithin';
 export * from './useRequest';
 
 // scene
+export { usePagination } from './usePagination';
 export { useTextSelection } from './useTextSelection';
