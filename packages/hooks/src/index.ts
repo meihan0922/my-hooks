@@ -32,6 +32,7 @@ export { useUpdate } from './useUpdate';
 // dom
 export { useClickAway } from './useClickAway';
 export { useEventListener } from './useEventListener';
+export { useFocusWithin } from './useFocusWithin';
 
 // request
 export * from './useRequest';
