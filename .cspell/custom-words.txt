@@ -5,3 +5,4 @@ mousedown
 touchstart
 focusin
 focusout
+selectionchange

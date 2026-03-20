@@ -36,3 +36,6 @@ export { useFocusWithin } from './useFocusWithin';
 
 // request
 export * from './useRequest';
+
+// scene
+export { useTextSelection } from './useTextSelection';
