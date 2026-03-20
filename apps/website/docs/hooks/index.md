@@ -13,6 +13,7 @@
 | **DOM 與瀏覽器** | `useEventListener`                                                                        | 監聽元素事件                                                                        |
 |                  | `useClickAway`                                                                            | 監聽點擊發生在目標元素外部的事件                                                    |
 |                  | `useFocusWithin`                                                                          | 監聽焦點是否在目標元素內部                                                          |
+| **場景**         | `useTextSelection`                                                                        | 監聽文字選取狀態，回傳選取內容與邊界矩形，適用於高亮、複製、浮動工具列              |
 | **生命周期**     | `useUnmount`                                                                              | 僅在組件卸載時行清理函式                                                            |
 |                  | `useMount`                                                                                | 元件 mount 時，執行一次函式                                                         |
 | **Advanced**     | `useMemoizedFn`                                                                           | 持久化函式的 hook                                                                   |
