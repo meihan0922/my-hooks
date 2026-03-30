@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 
-import { useMemoizedFn } from '../useMemorizedFn';
+import { useMemoizedFn } from '../useMemoizedFn';
 import { useRequest } from '../useRequest';
 
 type PaginationParams = {

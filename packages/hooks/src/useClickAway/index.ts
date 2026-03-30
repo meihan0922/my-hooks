@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 
-import { useMemoizedFn } from '../useMemorizedFn';
+import { useMemoizedFn } from '../useMemoizedFn';
 
 // 使用者可以傳 ref 或是 dom 元素 或是 多個 ref/element 的 array
 type BasicTarget<T = HTMLElement> = T | null | undefined;

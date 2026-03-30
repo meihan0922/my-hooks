@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-import { useMemoizedFn } from '../useMemorizedFn';
+import { useMemoizedFn } from '../useMemoizedFn';
 
 type StateStorage = {
   getItem: (key: string) => string | null | undefined;

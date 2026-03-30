@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 
-import { useMemoizedFn } from '../useMemorizedFn';
+import { useMemoizedFn } from '../useMemoizedFn';
 
 type FocusWithinOptions = {
   onFocus?: (event: FocusEvent) => void;

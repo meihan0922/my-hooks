@@ -1,6 +1,6 @@
 import { useRef } from 'react';
 
-import { useMemoizedFn } from '../useMemorizedFn';
+import { useMemoizedFn } from '../useMemoizedFn';
 import { useUnmount } from '../useUnmount';
 
 type Options = {

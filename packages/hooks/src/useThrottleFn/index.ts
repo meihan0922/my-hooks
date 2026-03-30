@@ -1,7 +1,7 @@
 import { useRef } from 'react';
 
-import { useMemoizedFn } from '../useMemorizedFn';
-import { useUnmount } from '../useUnmount';
+import { useMemoizedFn } from '..';
+import { useUnmount } from '..';
 
 type Options = {
   wait?: number;
